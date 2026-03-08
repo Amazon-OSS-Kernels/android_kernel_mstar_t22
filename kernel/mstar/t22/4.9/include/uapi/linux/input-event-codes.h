@@ -657,6 +657,10 @@
 /* Add key for Amazon FireTV remote fall back feature */
 #define KEY_IRFALLBACK                  0x278
 
+/* customized keys */
+#define KEY_BUTTON1                     0x27e
+#define KEY_BUTTON2                     0x27f
+
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0
 #define BTN_TRIGGER_HAPPY2		0x2c1
