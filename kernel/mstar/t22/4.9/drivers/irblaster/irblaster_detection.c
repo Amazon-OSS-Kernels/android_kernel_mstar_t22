@@ -123,6 +123,10 @@ EXPORT_SYMBOL_GPL(get_headphone_state);
 
 static void set_state(struct irblaster_detection_dev *dev, int state)
 {
+#ifdef CONFIG_AMAZON_METRICS_LOG
+	char *blaster_metric_prefix = "blaster:def:monitor=1;CT;1";
+	char mbuf[BLASTER_METRICS_STR_LEN + 1];
+#endif
 	char event_string[10];
 	char *envp[] = { event_string, NULL };
 	if ((dev->shared == 0) || (dev->switch_ctrl >= SWITCH_IRB_PLUG_IN)) {
@@ -130,6 +134,16 @@ static void set_state(struct irblaster_detection_dev *dev, int state)
 		snprintf(event_string, sizeof(event_string), "plug=%d", state);
 		pr_info("irblaster: generate IR detect uevent %s\n", envp[0]);
 		kobject_uevent_env(&dev->dev->kobj, KOBJ_CHANGE, envp);
+#ifdef CONFIG_AMAZON_METRICS_LOG
+		snprintf(mbuf, BLASTER_METRICS_STR_LEN,
+			"%s,irjack_dtected_%d;CT;",
+			blaster_metric_prefix, state);
+		log_to_metrics(ANDROID_LOG_INFO, "BlasterEvent", mbuf);
+		log_counter_to_vitals(ANDROID_LOG_INFO, "Kernel", "Kernel",
+			"BLASTER", "plug", (u32)state,
+			"count", NULL, VITALS_NORMAL);
+
+#endif
 	} else {
 		pr_info("Pass Headphone state to HP driver \n");
 		headphone_state = dev->state;
