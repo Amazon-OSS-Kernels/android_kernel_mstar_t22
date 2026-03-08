@@ -151,16 +151,6 @@ static void get_wakeup_reason(void)
 			pr_info("System is woken up by Netflix key \n");
 			sprintf(power_on_src_name, "%s", "app_1");
 			break;
-		case 0xA4:
-		case 0x3A:
-			pr_info("System is woken up by customized button 1 \n");
-			sprintf(power_on_src_name, "%s", "button_1");
-			break;
-		case 0xA5:
-		case 0x06:
-			pr_info("System is woken up by customized button 2 \n");
-			sprintf(power_on_src_name, "%s", "button_2");
-			break;
 		case 0x05:
 			pr_info("System is woken up by Amazon Video  key \n");
 			sprintf(power_on_src_name, "%s", "app_2");

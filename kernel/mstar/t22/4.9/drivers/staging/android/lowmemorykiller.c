@@ -86,7 +86,6 @@ static int lowmem_minfree_size = 4;
 #endif
 
 static unsigned long lowmem_deathpending_timeout;
-static pid_t lowmem_deathpending_tgid;
 
 /* ACOS_MOD_BEGIN {fwk_crash_log_collection} */
 
@@ -283,7 +282,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		if (!p)
 			continue;
 
-		if ((task_lmk_waiting(p) || (lowmem_deathpending_tgid == task_tgid_nr(p))) &&
+		if (task_lmk_waiting(p) &&
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
 			rcu_read_unlock();
@@ -363,7 +362,6 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		long free = other_free * (long)(PAGE_SIZE / 1024);
 
 		task_lock(selected);
-		lowmem_deathpending_tgid = task_tgid_nr(selected);
 		send_sig(SIGKILL, selected, 0);
 		if (selected->mm)
 			task_set_lmk_waiting(selected);
