@@ -143,6 +143,10 @@
 #include "idme_default_table_ABC.h"
 #endif
 
+#if defined(UFBL_PROJ_abc123)
+#include "idme_default_table_abc123.h"
+#endif
+
 #if defined(UFBL_PROJ_ABC)
 #include "idme_default_table_ABC.h"
 #endif
