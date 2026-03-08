@@ -259,7 +259,7 @@ int serial_printf(const char *fmt, ...)
 	/* For this to work, printbuffer must be larger than
 	 * anything we ever want to print.
 	 */
-	i = vsnprintf(printbuffer, CONFIG_SYS_PBSIZE, fmt, args);
+	i = vsprintf(printbuffer, fmt, args);
 	va_end(args);
 
 	serial_puts(printbuffer);
@@ -328,7 +328,7 @@ int fprintf(int file, const char *fmt, ...)
 	/* For this to work, printbuffer must be larger than
 	 * anything we ever want to print.
 	 */
-	i = vsnprintf(printbuffer, CONFIG_SYS_PBSIZE, fmt, args);
+	i = vsprintf(printbuffer, fmt, args);
 	va_end(args);
 
 	/* Send to desired file */
@@ -522,7 +522,7 @@ int vprintf(const char *fmt, va_list args)
 	/* For this to work, printbuffer must be larger than
 	 * anything we ever want to print.
 	 */
-	i = vsnprintf(printbuffer, CONFIG_SYS_PBSIZE, fmt, args);
+	i = vsprintf(printbuffer, fmt, args);
 
 	/* Print the string */
 	puts(printbuffer);
@@ -589,7 +589,7 @@ inline void dbg(const char *fmt, ...)
 	/* For this to work, printbuffer must be larger than
 	 * anything we ever want to print.
 	 */
-	i = vsnprintf(printbuffer, CONFIG_SYS_PBSIZE, fmt, args);
+	i = vsprintf(printbuffer, fmt, args);
 	va_end(args);
 
 	if ((screen + sizeof(screen) - 1 - cursor)
