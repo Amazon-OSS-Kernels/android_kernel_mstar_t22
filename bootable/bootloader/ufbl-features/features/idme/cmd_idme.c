@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2011-2024 Amazon.com Inc. or its affiliates.  All Rights Reserved.
- *
  */
 #if defined(SUPPORT_UBOOT) || defined(SUPPORT_BOLT)
 
