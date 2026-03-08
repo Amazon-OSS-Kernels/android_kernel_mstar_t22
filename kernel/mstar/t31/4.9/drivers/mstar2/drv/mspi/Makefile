@@ -14,9 +14,7 @@ EXTRA_CFLAGS      +=  -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/mspi/
 EXTRA_CFLAGS      +=  -DRED_LION
 
 # specific options
-ifeq ($(TARGET_PRODUCT), $(filter $(TARGET_PRODUCT), brandenburg anna hailey))
-EXTRA_CFLAGS      +=  -DWAR_MT8570_DSP
-endif
+EXTRA_CFLAGS      +=
 
 # files
 obj-$(CONFIG_MSTAR_MSPI)   := mdrv-mspi.o

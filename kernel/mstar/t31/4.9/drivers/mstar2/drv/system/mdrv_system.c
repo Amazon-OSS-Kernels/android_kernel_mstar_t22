@@ -621,13 +621,7 @@ void MDrv_SYS_SwitchUart(U32 arg)
 void MDrv_SYS_SwitchUart(unsigned long arg)
 #endif
 {
-    int switch2aeon;
-    if (copy_from_user( &switch2aeon, (int*)arg, sizeof(switch2aeon) ) )
-    {
-        SYS_PRINT("arg is invalid.\n");
-        return;
-    }
-    if (switch2aeon)
+    if (*((U8*)arg) == TRUE)
     {
         //SYS_PRINT("UART Switch to Aeon\n");
         REG_ADDR(0x1EAA) &= ~0x1C;

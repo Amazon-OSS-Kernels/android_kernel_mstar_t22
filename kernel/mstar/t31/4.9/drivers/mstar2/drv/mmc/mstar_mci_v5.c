@@ -3623,8 +3623,7 @@ static s32 __init mstar_mci_init(void)
 		eMMC_debug(eMMC_DEBUG_LEVEL_ERROR,1,"eMMC Err: platform_device_register fail, %Xh\n", err);
 
 
-	mci_workqueue =  alloc_workqueue("mstar_mci", WQ_HIGHPRI | WQ_MEM_RECLAIM, 1);
-
+	mci_workqueue = create_workqueue("mstar_mci");
 	if (!mci_workqueue) {
 		pr_err("mstar_mci: not enough memory to create workqueue\n");
 		return -ENOMEM;

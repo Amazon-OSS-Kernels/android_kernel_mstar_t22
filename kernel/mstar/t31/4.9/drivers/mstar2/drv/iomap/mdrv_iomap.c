@@ -241,6 +241,7 @@ static int _MDrv_MIOMAP_MMap(struct file *filp, struct vm_area_struct *vma)
     {
           printk(KERN_ERR "_MDrv_MIOMAP_MMap invalid argument, request io length is 0x%08lx, current io length is 0x%08tx\n      --pgoff 0x%08lx, tid%d, pid%d\n",
                      vma->vm_end-vma->vm_start , (size_t)mmioData->miomap_size, vma->vm_pgoff, current->tgid, current->pid);
+          panic("It's not really a kernel bug. I panic here for purpose to notify you that user mode app has bug!");
           mutex_unlock(&mpool_iomap_mutex);
          return -EINVAL;
     }

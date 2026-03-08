@@ -904,6 +904,10 @@ long _MDrv_MBXIO_IOCtl(struct inode *inode, struct file *filp, U32 u32Cmd, unsig
 
         default:  /* redundant, as cmd was checked against MAXNR */
 	        _MDrv_MBXIO_IOC_UnLock();
+			if ((_IOC_NR(u32Cmd) == MDRV_MBX_IOC_INIT_NR) &&
+				(_IOC_SIZE(MDRV_MBX_IOC_INIT) != _IOC_SIZE(u32Cmd)))
+				MBXIO_ASSERT(0);
+			else
                 MBXIO_KDBG(" ERROR IOCtl number %x\n ",u32Cmd);
 			return -ENOTTY;
     }

@@ -1346,7 +1346,6 @@ static void (*_PMGPIOCallback[PM_INT_COUNT])(void);
 static irq_handler_t pm_gpio_irq(int irq, void *data)
 {
     U8 i;
-	bool is_irq_trigger = false;
     for(i=0; i < PM_INT_COUNT; i++)
     {
         if(MHal_GPIO_ReadRegBit((PM_gpio_IRQreg[i]+0x1),BIT_PM_GPIO_INT_FINAL_STATUS))
@@ -1356,14 +1355,10 @@ static irq_handler_t pm_gpio_irq(int irq, void *data)
 			if (_PMGPIOCallback[i])
 				(_PMGPIOCallback[i])();
             MHal_GPIO_WriteRegBit(PM_gpio_IRQreg[i], 0,  BIT_PM_GPIO_INT_MASK);
-			is_irq_trigger = true;
+			return IRQ_HANDLED;
         }
     }
-
-	if (is_irq_trigger)
-		return IRQ_HANDLED;
-	else
-		return IRQ_NONE;
+    return IRQ_NONE;
 }
 #endif
 

@@ -42,11 +42,6 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/spi.h>
 
-/* don't uplevel this if MT8570 is not connected through SPI in new SoC */
-#ifdef CONFIG_MTK_HIFI4DSP_SUPPORT
-extern bool board_has_MT8570(void);
-#endif
-
 static void spidev_release(struct device *dev)
 {
 	struct spi_device	*spi = to_spi_device(dev);
@@ -1285,23 +1280,6 @@ static int spi_init_queue(struct spi_master *master)
 			"will run message pump with realtime priority\n");
 		sched_setscheduler(master->kworker_task, SCHED_FIFO, &param);
 	}
-/* don't uplevel this if MT8570 is not connected through SPI in new SoC */
-#ifdef CONFIG_MTK_HIFI4DSP_SUPPORT
-	else if (board_has_MT8570() &&
-		!strcmp(dev_name(&master->dev), "spi32766")) {
-		/* bump up priority to nice -19 as SPI is used in DSP audio processing
-		 * and -19 is THREAD_PRIORITY_URGENT_AUDIO in Android design.
-		 * RT prio has negtive impact on app start time
-		 */
-		struct sched_attr attr = {
-			.sched_policy = SCHED_NORMAL,
-			.sched_nice	= -19,
-		};
-		dev_info(&master->dev,
-			"will run message pump with nice THREAD_PRIORITY_URGENT_AUDIO\n");
-		sched_setattr(master->kworker_task, &attr);
-	}
-#endif
 
 	return 0;
 }

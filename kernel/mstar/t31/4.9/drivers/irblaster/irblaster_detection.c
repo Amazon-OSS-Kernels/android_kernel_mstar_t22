@@ -25,7 +25,11 @@
 #include <linux/kernel.h>
 
 #ifdef CONFIG_AMAZON_METRICS_LOG
+#include <linux/metricslog.h>
 #include <linux/vmalloc.h>
+#ifndef BLASTER_METRICS_STR_LEN
+#define BLASTER_METRICS_STR_LEN 128
+#endif
 #endif
 
 #include "mdrv_gpio.h"
@@ -49,7 +53,6 @@ static struct task_struct *irblaster_poll_tsk;
 static struct device *irblaster_dev;
 static U8 irblaster_pwm = 0xFF;
 struct class *irblaster_class;
-
 
 enum IRBLASTER_STATUS {
 	IRBLASTER_UNPLUGGED		= 0,
@@ -166,6 +169,10 @@ static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP, enable_show, enable_store);
 
 static void set_state(struct irblaster_detection_dev *dev, int state)
 {
+#ifdef CONFIG_AMAZON_METRICS_LOG
+	char *blaster_metric_prefix = "blaster:def:monitor=1;CT;1";
+	char mbuf[BLASTER_METRICS_STR_LEN + 1];
+#endif
 	char event_string[10];
 	char *envp[] = { event_string, NULL };
 
@@ -174,6 +181,16 @@ static void set_state(struct irblaster_detection_dev *dev, int state)
 		snprintf(event_string, sizeof(event_string), "plug=%d", state);
 		pr_info("irblaster: generate IR detect uevent %s\n", envp[0]);
 		kobject_uevent_env(&dev->dev->kobj, KOBJ_CHANGE, envp);
+#ifdef CONFIG_AMAZON_METRICS_LOG
+		snprintf(mbuf, BLASTER_METRICS_STR_LEN,
+			"%s,irjack_dtected_%d;CT;",
+			blaster_metric_prefix, state);
+		log_to_metrics(ANDROID_LOG_INFO, "BlasterEvent", mbuf);
+		log_counter_to_vitals(ANDROID_LOG_INFO, "Kernel", "Kernel",
+			"BLASTER", "plug", (u32)state,
+			"count", NULL, VITALS_NORMAL);
+
+#endif
 	}
 }
 

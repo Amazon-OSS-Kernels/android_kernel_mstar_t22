@@ -257,7 +257,7 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 
 		if (l == i->head && pass_counter++ > PASS_LIMIT) {
 			/* If we hit this, we're dead. */
-			printk(KERN_ERR "serial8250: Port = %d, irq = %d too much work usr:0x%x 0x%x\n", port->line, port->irq, serial_in(up, MSTAR_UART_USR), serial_in(up, MSTAR_UART_USR+1));
+			printk(KERN_ERR "serial8250: too much work usr:0x%x 0x%x\n", serial_in(up, MSTAR_UART_USR),  serial_in(up, MSTAR_UART_USR+1));
  #if DYNAMIC_BAUDRATE_CHANGE_ENABLE
 			hang_counter++;
 			if (hang_counter == 10)

@@ -53,7 +53,7 @@
  */
 
 #define MAX_ADSP_COUNT 1
-#define MAX_SCP_MSG_NUM_IN_QUEUE (64)
+#define MAX_SCP_MSG_NUM_IN_QUEUE (16)
 #define SHARE_BUF_SIZE 288
 #define SCP_MSG_BUFFER_SIZE ((SHARE_BUF_SIZE) - 16)
 
@@ -951,17 +951,6 @@ static int scp_init_single_msg_queue(
 		WARN_ON(1);
 		msg_queue->thread_enable = false;
 	} else {
-		/* bump up nice -19 as scp_thread_task is used in DSP audio processing
-		 * and -19 is THREAD_PRIORITY_URGENT_AUDIO in Android design.
-		 * RT prio has negtive impact on app start time
-		 */
-		struct sched_attr attr = {
-			.sched_policy = SCHED_NORMAL,
-			.sched_nice	= -19,
-		};
-		pr_info("will run scp_thread_task with nice THREAD_PRIORITY_URGENT_AUDIO\n");
-		sched_setattr(msg_queue->scp_thread_task, &attr);
-
 		msg_queue->thread_enable = true;
 		wake_up_process(msg_queue->scp_thread_task);
 	}

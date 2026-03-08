@@ -431,8 +431,8 @@ static void hidp_del_timer(struct hidp_session *session)
 		del_timer(&session->timer);
 }
 
-static void hidp_process_report(struct hidp_session *session, int type,
-				const u8 *data, unsigned int len, int intr)
+static void hidp_process_report(struct hidp_session *session,
+				int type, const u8 *data, int len, int intr)
 {
 	if (len > HID_MAX_BUFFER_SIZE)
 		len = HID_MAX_BUFFER_SIZE;
@@ -734,7 +734,7 @@ static void hidp_stop(struct hid_device *hid)
 	hid->claimed = 0;
 }
 
-struct hid_ll_driver hidp_hid_driver = {
+static struct hid_ll_driver hidp_hid_driver = {
 	.parse = hidp_parse,
 	.start = hidp_start,
 	.stop = hidp_stop,
@@ -743,7 +743,6 @@ struct hid_ll_driver hidp_hid_driver = {
 	.raw_request = hidp_raw_request,
 	.output_report = hidp_output_report,
 };
-EXPORT_SYMBOL_GPL(hidp_hid_driver);
 
 /* This function sets up the hid device. It does not add it
    to the HID system. That is done in hidp_add_connection(). */

@@ -153,7 +153,7 @@ void __init serial_init(void)
     u.type = PORT_16550;
     u.iobase = mstar_pm_base + (0x110600UL << 1);
     u.irq = E_IRQEXPL_UART1;
-    u.uartclk = 24000000;
+    u.uartclk = 123000000;
     u.iotype = 0;
     u.regshift = 0;
     u.fifosize = 16 ; // use the 8 byte depth FIFO well

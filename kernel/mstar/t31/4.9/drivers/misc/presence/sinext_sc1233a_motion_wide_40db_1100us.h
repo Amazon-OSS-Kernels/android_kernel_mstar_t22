@@ -1,16 +1,7 @@
-/*
- * Copyright (c) 2022 Amazon.com, Inc. or its affiliates.  All rights reserved.
- *
- * PROPRIETARY/CONFIDENTIAL.  USE IS SUBJECT TO LICENSE TERMS.
- *
- * sinext_sc1233a_motion_wide_40db_1100us.h: Socionext generated sequencer file to configure SC1233A radar in DETOUT mode with chirp time of 1100us and Rx gain of 40 dB.
- *
- * Owners: @jodong,@yenvivek
- *
- * MAJOR_VERSION:1
- * MINOR_VERSION:0
- *
- */
+// SC123x Initial DataSet, Socionext Inc.
+// name=??
+// hash=??
+// date=??
 
 #ifndef _MOTION_WIDE_40DB_1100US
 #define _MOTION_WIDE_40DB_1100US

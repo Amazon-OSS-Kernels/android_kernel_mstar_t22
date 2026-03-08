@@ -607,18 +607,6 @@ static int spi_trigger_wr_data(struct spi_device *spi,
 
         spi_message_init(&msg);
 
-        if (len > MTK_SPI_BUFSIZ) {
-            local_buf = kvzalloc(len, GFP_KERNEL);
-            if (!local_buf) {
-                pr_notice("tx/rx kvmalloc %zu fail, line:%d\n", len, __LINE__);
-                status = -ENOMEM;
-                goto tail;
-            }
-        } else {
-            local_buf = mtk_spi_buffer;
-            memset(local_buf, 0, MTK_SPI_BUFSIZ);
-        }
-
         if (wr) {
            x[0].tx_buf =&tx_cmd_rd;
            x[0].rx_buf =  NULL;
@@ -635,7 +623,7 @@ static int spi_trigger_wr_data(struct spi_device *spi,
 
         if (wr) {
             x[1].tx_buf = NULL;
-            x[1].rx_buf = local_buf;
+			x[1].rx_buf = buf_store;
         } else {
             x[1].tx_buf = buf_store;
             x[1].rx_buf = NULL;
@@ -714,8 +702,9 @@ static int spi_trigger_wr_data(struct spi_device *spi,
         }
         tail:
         /* Only for successful read */
-        if (wr && !status)
-            memcpy(buf_store, ((u8 *)x[1].rx_buf ), len);
+		if (status)
+			pr_notice("write/read err, line(%d), len(%d), ret(%d)\n",
+				__LINE__, len, status);
     }
    else {
         size_t size;

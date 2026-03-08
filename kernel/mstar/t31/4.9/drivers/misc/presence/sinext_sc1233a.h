@@ -1,17 +1,3 @@
-/*
- * Copyright (c) 2022 Amazon.com, Inc. or its affiliates.  All rights reserved.
- *
- * PROPRIETARY/CONFIDENTIAL.  USE IS SUBJECT TO LICENSE TERMS.
- *
- * sinext_sc1233a.h: Header file defining some constants used in sinext_sc1233a.c.
- *
- * Owners: @jodong,@yenvivek
- *
- * MAJOR_VERSION:1
- * MINOR_VERSION:0
- *
- */
-
 #ifndef __SINEXT_SC1233A_H
 #define __SINEXT_SC1233A_H
 

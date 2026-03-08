@@ -19,7 +19,6 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <hifi4dsp_load/hifi4dsp_load.h>
-#include <hifi4dsp_wdt/hifi4dsp_wdt.h>
 
 #ifdef CONFIG_AMAZON_DSP_FRAMEWORK
 #include "adf/adf_status.h"
@@ -158,7 +157,6 @@ void hifi4dsp_wdt_handler(void)
 void dsp_wdt_work_handler(struct work_struct *unused)
 {
     char data[32], *envp[] = { data, NULL };
-    mtk_dsp_wdt_disable();
     pr_notice("[%s] ADSP happens exception!\n", __func__);
 
     snprintf(data, sizeof(data), "ACTION=DSP_WTD_WHOLE");
@@ -260,23 +258,6 @@ static int mtk_dsp_wdt_probe(struct platform_device *pdev)
    gpdev = pdev;
 
     return 0;
-}
-
-void mtk_dsp_wdt_disable(void)
-{
-    pr_info("Disable DSP WDT interruption \n");
-    struct mtk_dsp_wdt_dev *dev = dev_get_drvdata(&gpdev->dev);
-    free_gpio_irq(dev->dsp_wdt_gpio, &gpdev->dev);
-}
-void mtk_dsp_wdt_enable(void)
-{
-    int ret;
-    pr_info("Enable DSP WDT interruption \n");
-    struct mtk_dsp_wdt_dev *dev = dev_get_drvdata(&gpdev->dev);
-    ret = request_gpio_irq(dev->dsp_wdt_gpio, mtk_dsp_wdt_isr, (dev->dsp_wdt_inverse ? IRQF_TRIGGER_RISING : IRQF_TRIGGER_FALLING), &gpdev->dev);
-    if (ret != 0) {
-        pr_err(" %s: failed to request irq %d(err:%d)\n", __func__, dev->dsp_wdt_gpio, ret);
-    }
 }
 
 static int mtk_dsp_wdt_pm_suspend(struct device *device)
