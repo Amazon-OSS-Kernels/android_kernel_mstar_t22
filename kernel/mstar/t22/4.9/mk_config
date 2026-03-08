@@ -1,0 +1,18 @@
+#!bin/bash
+
+################################################################################
+#
+#  mk_config
+#
+#  Copyright (c) 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+################################################################################
+
+################################################################################
+# NOTE: You must fill in the following with the path to a copy of an
+#       linaro-aarch64_linux-2014.09
+################################################################################
+#CROSS_COMPILER_PATH="<path/to/linaro-aarch64_linux-2014.09>"
+KERNEL_CONFIG=${PWD}/arch/arm64/configs/t22_defconfig
+GENLINK_KERNEL=${PWD}/genlink_kernel.sh
+CROSS_COMPILER_PATH=/mfs/mtkslt0264/mtk17916/fos_0725/prebuilts/gcc/linux-x86/aarch64/linaro-aarch64_linux-2014.09
