@@ -34,6 +34,19 @@
 
 #include "idme.h"
 
+#if defined(UFBL_FEATURE_UNLOCK)
+#include <amzn_unlock.h>
+#endif
+#if defined(UFBL_FEATURE_SECURE_BOOT)
+#include <amzn_secure_boot.h>
+#endif
+#if defined(UFBL_FEATURE_TEMP_UNLOCK)
+#include <amzn_temp_unlock.h>
+#endif
+#if defined(UFBL_FEATURE_ONETIME_UNLOCK)
+#include <amzn_onetime_unlock.h>
+#endif
+
 #if !defined(UFBL_TESTS) && \
 	!defined(UFBL_PLATFORM_IMX) && \
 	!defined(UFBL_PROJ_ABC)
@@ -249,12 +262,36 @@ int idme_update_var_ex(const char *name, const char *value, unsigned int length)
 		return -1;
 	}
 }
+
+/**
+* Check if our device is in a 'locked' state. This is a wrapper around
+* platform-specific code, since each platform may store the 'locked' state in a
+* different way.
+*
+* @return 0 if unlocked, 1 if locked.
+*/
+static inline int amzn_target_is_locked_production_device(void) {
+#if defined(UFBL_FEATURE_SECURE_BOOT) && defined(UFBL_FEATURE_UNLOCK)
+	return (AMZN_PRODUCTION_DEVICE == amzn_target_device_type()
+			&& (!amzn_target_is_unlocked())
+#if defined(UFBL_FEATURE_TEMP_UNLOCK)
+			&& (!amzn_target_is_temp_unlocked())
+#endif
+#if defined(UFBL_FEATURE_ONETIME_UNLOCK)
+			&& (!amzn_target_is_onetime_unlocked())
+#endif
+			);
+#else
+	return 0;
+#endif
+}
 /**
 * @brief increments the bootcount
 *
 *Reads the IDME data bootcount from the stored IDME data, increments it by 1 and
 *stores it back. Prints the value of increased value of bootcount in debugging logs
 *This function is not idempotent. Must be called from bootloader only once.
+*Note: This function does nothing in production mode.
 */
 void idme_boot_info(void)
 {
@@ -265,7 +302,10 @@ void idme_boot_info(void)
 	unsigned int value = 0;
 
 	memset(boot_count_str, 0, sizeof(boot_count_str));
-
+	if (amzn_target_is_locked_production_device()) {
+		dprintf(CRITICAL, "not update idme in prod device \n");
+		return ;
+	}
 	/* get the bootcount */
 	if (idme_get_var) {
 		if((idme_get_var("bootcount",
