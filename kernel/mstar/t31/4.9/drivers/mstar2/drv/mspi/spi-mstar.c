@@ -353,9 +353,6 @@ typedef struct
     u32 u32ClkSpi;
 }ST_DRV_MSPI_CLK;
 
-extern void mtk_dsp_wdt_disable(void);
-extern void hifidsp_hw_pull_low(void);
-
 //#define SPI_LOAD_IMAGE_SPEED		(18*1000*1000)
 //#define SPI_SPEED_LOW				(12*1000*1000)
 //#define SPI_SPEED_HIGH				(18*1000*1000)
@@ -984,15 +981,6 @@ out_err:
 }
 #endif
 
-void trigger_dsp_wdt(void)
-{
-    char data[32], *envp[] = { data, NULL };
-    pr_err("[%s] SPI timeout happens!\n", __func__);
-    snprintf(data, sizeof(data), "ACTION=DSP_WTD_WHOLE");
-    kobject_uevent_env(&gpdev->dev.kobj, KOBJ_CHANGE, envp);
-    pr_err("[%s][Reload DSP]\n", __func__);
-}
-
 // Logs the reset metric. Called everytime a SPI transaction times out.
 static void log_timeout_metric(unsigned count) {
 #ifdef CONFIG_AMAZON_MINERVA_METRICS_LOG
@@ -1057,17 +1045,9 @@ static int mstar_spi_transfer_one(struct spi_master *master,
             bs->len = 0;
             spin_unlock_irqrestore(&bs->lock, flags);
             log_timeout_metric(1);
-            pr_err("MSPI timeout!! %s:%d -- Reset DSP - len: %d, cur_len: %d, tfr_len: %u\n",
+            pr_err("MSPI timeout!! %s:%d -- len: %d, cur_len: %d, tfr_len: %u\n",
                     __func__, __LINE__, bs->len, bs->current_trans_len, tfr->len);
             err = -ETIMEDOUT;
-#if WAR_MT8570_DSP
-            mtk_dsp_wdt_disable(); /* disable DSP wdt interruption */
-            hifidsp_hw_pull_low(); /* put DSP in dead state */
-#endif
-            disable_irq(bs->irq);
-            mstar_hw_clear_done(bs);
-            trigger_dsp_wdt();
-            enable_irq(bs->irq);
             goto out;
         }
 #if 1 //8570 read command for each spi_transfer not for each list

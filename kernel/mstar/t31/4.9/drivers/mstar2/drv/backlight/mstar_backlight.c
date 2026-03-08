@@ -67,6 +67,7 @@ base on linux/drivers/video/backlight/pwm_bl.c
 #include <linux/pwm_backlight.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
+#include <linux/delay.h>
 
 #include "mhal_gpio_reg.h"
 #ifdef CONFIG_MSTAR_PWM
@@ -129,6 +130,19 @@ struct pwm_bl_data {
 
 //MODULE_DEVICE_TABLE(platform, mstar_backlight);
 
+#define REG_MOD_A_BASE              (0x111E00UL)      // for MOD GPIO
+
+#define WRITE_WORD(_reg, _val)      { (*((volatile unsigned short*)(_reg))) = (unsigned short)(_val); }
+#define READ_WORD(_reg)             (*(volatile unsigned short*)(_reg))
+
+#define RIU_READ_2BYTE(addr)        ( READ_WORD( REG_MIPS_BASE  + (addr) ) )
+#define RIU_WRITE_2BYTE(addr, val)  { WRITE_WORD( REG_MIPS_BASE  + (addr), val) }
+
+#define MOD_A_W2BYTE( u32Reg, u16Val)\
+            ( { RIU_WRITE_2BYTE( (REG_MOD_A_BASE + ((u32Reg) & 0xFF) ) << 1, u16Val ); } )
+#define MOD_A_R2BYTE( u32Reg ) \
+            ( { RIU_READ_2BYTE( (REG_MOD_A_BASE + ((u32Reg) & 0xFF) ) << 1) ; } )
+
 static int pwm_backlight_update_status(struct backlight_device *bl)
 {
 
@@ -158,6 +172,27 @@ static int pwm_backlight_update_status(struct backlight_device *bl)
             gpio_set_value(pb->enable_gpio, 0);
 
         if(pb->enable_vcc_gpio_ctrl) {
+            if (strstr(idme_get_config_name(), "harissa65") != NULL) {
+                msleep(200);    //OffTiming1
+
+                printk(KERN_INFO "turn OFF data\n");
+                // MOD GPIO_SEL set to INT_GPO
+                MOD_A_W2BYTE(0x90, 0xFFFF);    //0x48[15:0],reg_gpo_sel
+                MOD_A_W2BYTE(0x92, 0xFFFF);    //0x49[15:0],reg_gpo_sel
+                // MOD GPIO_OEN set to input function
+                MOD_A_W2BYTE(0x84, 0xFFFF);    //0x42[15:0],reg_gpo_oez
+                MOD_A_W2BYTE(0x86, 0xFFFF);    //0x43[15:0],reg_gpo_oez
+                // MOD EXT_DATA_EN set to GPIO path
+                MOD_A_W2BYTE(0x80, 0xFFFF);    //0x40[15:0],reg_ext_data_en
+                MOD_A_W2BYTE(0x82, 0xFFFF);    //0x41[15:0],reg_ext_data_en
+                // MOD Output Config set to TTL
+                MOD_A_W2BYTE(0x00, 0x0000);    //0x00[15:0],reg_gcr_outconf
+                MOD_A_W2BYTE(0x02, 0x0000);    //0x01[15:0],reg_gcr_outconf
+
+                // Delay (Data -> PNL_VCC), should follow panel ini OffTiming2
+                msleep(5);    //OffTiming2
+            }
+
             printk(KERN_INFO "turn OFF vcc: %d, inverse: %d\n", pb->vcc_gpio, pb->vcc_gpio_invert);
             if (pb->vcc_gpio_invert)
                 gpio_set_value(pb->vcc_gpio, 1);

@@ -1435,7 +1435,7 @@
 		};
 		mali_gop {
 			heaptype = <0>;
-			max_size = <0x0 0xc800000>;
+			max_size = <0x0 0x38400000>;
 			normal_zone = <1>;
 		};
 		xc_frc_pq {
@@ -1696,5 +1696,20 @@
 		dsp-wdt-inverse_abc123 = <1>;
 		dsp-wdt-inverse_abc123eu = <1>;
     };
+
+	dsp_mt8570 {
+		compatible = "amazon,dsp_mt8570";
+		host-irq-gpio = <10>;
+		reset-gpio = <42>;
+		wdt-irq-gpio = <7>;
+		dsp-wdt-inverse = <0>;
+		dsp-wdt-inverse_abc123 = <1>;
+		dsp-wdt-inverse_abc123eu = <1>;
+	};
+
+	adf_dsp {
+		compatible = "amazon,adf-dsp-driver";
+		status = "okay";
+	};
 
 };
