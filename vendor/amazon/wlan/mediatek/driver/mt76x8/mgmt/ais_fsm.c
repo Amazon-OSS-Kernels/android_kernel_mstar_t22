@@ -543,8 +543,13 @@ VOID aisFsmStateInit_JOIN(IN P_ADAPTER_T prAdapter, P_BSS_DESC_T prBssDesc)
 
 		prStaRec->fgIsReAssoc = TRUE;	/* We do roaming while the medium is connected */
 
+#if CFG_SUPPORT_CFG80211_AUTH
+		prAisFsmInfo->ucAvailableAuthTypes = (UINT_8) prAdapter->prGlueInfo->rWpaInfo.u4AuthAlg;
+#else
 		/* TODO(Kevin): We may call a sub function to acquire the Roaming Auth Type */
 		prAisFsmInfo->ucAvailableAuthTypes = prAisSpecificBssInfo->ucRoamingAuthTypes;
+#endif
+		DBGLOG(AIS, INFO, "JOIN INIT: Auth Algorithm for Roaming:%d\n", prAisFsmInfo->ucAvailableAuthTypes);
 
 		prStaRec->ucTxAuthAssocRetryLimit = TX_AUTH_ASSOCI_RETRY_LIMIT_FOR_ROAMING;
 	}
@@ -3158,7 +3163,7 @@ BOOLEAN aisValidateProbeReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT
 	}
 
 	if (prAisFsmInfo->u4AisPacketFilter & PARAM_PACKET_FILTER_PROBE_REQ) {
-		DBGLOG(AIS, STATE, "[AIS] RX Probe Req Frame\n");
+		DBGLOG(AIS, INFO, "[AIS] RX Probe Req Frame\n");
 		kalIndicateRxMgmtFrame(prAdapter->prGlueInfo, prSwRfb);
 	}
 
