@@ -65,7 +65,7 @@ static struct usb_device_id btmtk_usb_table[] = {
  * GPIO PIN configureation
  * 	Sophia: 13 (GPIO9_pm)
  * 	abc123: 13 (GPIO9_pm)
- * 	Greta: 10 (PGIO6_pm)
+ * 	abc123: 10 (PGIO6_pm)
  *   No need this define BT_DONGLE_RESET_GPIO_PIN anymore,
  *     since platform implementation.
  */
