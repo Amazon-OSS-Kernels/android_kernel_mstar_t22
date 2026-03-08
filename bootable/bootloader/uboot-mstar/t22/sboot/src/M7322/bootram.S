@@ -1176,18 +1176,18 @@ amzn_identifier:
     .ascii "YAMA"
 #if defined(CONFIG_MSTAR_BD_M7322_MB170)|| defined(CONFIG_MSTAR_BD_M7322_MB175)
     // sboot version <LO, HI>
-    .byte 0x19, 0x00
+    .byte 0x1A, 0x00
     .ascii "SOPH"
 #elif defined(CONFIG_MSTAR_BD_M7322_G22)
     // sboot version <LO, HI>
-    .byte 0x1D, 0x00
+    .byte 0x1E, 0x00
     .ascii "GRET"
 #elif defined(CONFIG_MSTAR_BD_M7322_G22_abc123)
     // sboot version <LO, HI>
-    .byte 0x0E, 0x00
+    .byte 0x0F, 0x00
     .ascii "CLAR"
 #elif defined(CONFIG_MSTAR_BD_M7322_WINSTON)
     // sboot version <LO, HI>
-    .byte 0x05, 0x00
+    .byte 0x06, 0x00
     .ascii "WINS"
 #endif

@@ -1,7 +1,7 @@
 /*
  * idme_default_table.h
  *
- * Copyright 2011-2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2011-2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  */
 
 /*!
@@ -125,6 +125,14 @@
 
 #if defined(UFBL_PLAT_AML_S905Y4)
 #include "idme_default_table_s905y4.h"
+#endif
+
+#if defined(UFBL_PROJ_ABC)
+#include "idme_default_table_ABC.h"
+#endif
+
+#if defined(UFBL_PROJ_ABC)
+#include "idme_default_table_ABC.h"
 #endif
 
 #if defined(UFBL_PROJ_ABC)
