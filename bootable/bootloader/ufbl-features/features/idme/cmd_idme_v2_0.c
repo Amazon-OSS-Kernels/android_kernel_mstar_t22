@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 - 2020 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2015 - 2024 Amazon.com Inc. or its affiliates.  All Rights Reserved.
 */
 
 #if defined(SUPPORT_UBOOT) || defined(SUPPORT_BOLT)
@@ -281,7 +281,9 @@ int idme_get_var_v2p0(const char *name, char *buf, unsigned int length, void *da
 		return -1;
 
 	pitem = (struct item_t *)(&(pdata->item_data[0]));
-	for (i = 0; i < pdata->items_num; i++) {
+	for (i = 0; (i < pdata->items_num) &&
+		    (pitem->desc.size < IDME_MAX_IDME_ITEM_SIZE + (char *)pdata - (char *)pitem - sizeof(struct idme_desc));
+		    i++) {
 		if ( 0 == strcmp(name, pitem->desc.name) ) {
 			memcpy( buf, &(pitem->data[0]), MIN( pitem->desc.size, length ) );
 			ret = 0;
@@ -317,7 +319,9 @@ int idme_update_var_v2p0(const char *name, const char *value, unsigned int lengt
 	}
 
 	pitem = (struct item_t *)(&(pdata->item_data[0]));
-	for (i = 0; i < pdata->items_num; i++) {
+	for (i = 0; (i < pdata->items_num) &&
+		    (pitem->desc.size < IDME_MAX_IDME_ITEM_SIZE + (char *)pdata - (char *)pitem - sizeof(struct idme_desc));
+		    i++) {
 		if ( 0 == strcmp(name, pitem->desc.name) ) {
 			memset(&(pitem->data[0]), 0, pitem->desc.size);
 			memcpy(&(pitem->data[0]), value, MIN( pitem->desc.size, length ) );
