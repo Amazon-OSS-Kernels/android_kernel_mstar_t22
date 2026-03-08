@@ -425,33 +425,7 @@ int do_led_pwm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     }
     else
     {
-#ifdef LED_1_INVERT
-        if (LED_1_INVERT())
-        {
-            MDrv_PM_PWM_Polarity(TRUE);
-        }
-        else
-#endif
-        {
-            MDrv_PM_PWM_Polarity(FALSE);
-        }
         MDrv_PM_PWM_DutyCycle((PWM_LED_PERIOD_MAX * (fPercentage)) / 100);
-    }
-
-    // PATCH: seems duty 0% has issue for some LED modules, use this way to turn OFF LED
-    if (fPercentage == 0.0)
-    {
-#ifdef LED_1_INVERT
-        if (LED_1_INVERT())
-        {
-            MDrv_PM_PWM_Polarity(FALSE);
-        }
-        else
-#endif
-        {
-            MDrv_PM_PWM_Polarity(TRUE);
-        }
-        MDrv_PM_PWM_DutyCycle((PWM_LED_PERIOD_MAX * (100.0)) / 100);
     }
 
     UBOOT_TRACE("OK\n");

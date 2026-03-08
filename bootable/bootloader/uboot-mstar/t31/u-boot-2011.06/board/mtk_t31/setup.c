@@ -596,19 +596,6 @@ sbvc_result sboot_version_check(uchar* sboot_buf, int sboot_len)
 	if (sboot_ver == sboot_ver_dev) {
 		free(sboot_dev);
 		return SBVC_SAME_VER;
-	} else { /*different version, check anti-rollback version bump point*/
-		unsigned short version_bump = 0;
-#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_BRANDENBURG)
-		version_bump = 0x22;
-#elif defined(CONFIG_MTK_BD_MT164B_10AT_M7632_ANNA)
-		version_bump = 0x17;
-#elif defined(CONFIG_MTK_BD_MT168B_10AT_19133_MT5870_M7332_ABC)
-		version_bump = 0x05;
-#endif
-		if ((version_bump != 0) && (sboot_ver_dev >= version_bump) && (sboot_ver < version_bump )) {
-			free(sboot_dev);
-			return SBVC_ROLLBACK;
-		}
 	}
 	free(sboot_dev);
 

@@ -428,7 +428,6 @@ typedef enum {
     SBVC_HASH0_ERR,
     SBVC_DEV_MARK_NOT_FOUND,
     SBVC_SAME_VER,
-    SBVC_ROLLBACK,
 } sbvc_result;
 sbvc_result sboot_version_check(uchar *, int);
 

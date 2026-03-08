@@ -17,8 +17,6 @@
 
 #define UNIQUE_ITVID 0
 
-#define FLAG_ANTIROLLBACK_INITIALIZED (0x42525468)
-
 typedef struct RPMB_DATAFRAM {
     unsigned short type;
     unsigned short result;

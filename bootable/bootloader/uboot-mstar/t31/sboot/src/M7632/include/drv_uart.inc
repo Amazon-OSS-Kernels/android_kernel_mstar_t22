@@ -77,7 +77,6 @@ UART_CLK_FREQ               = 12000000
 #else
 UART_BAUD_RATE              = 115200
 UART_CLK_FREQ               = 123000000
-EX_UART_CLK_FREQ            = 24000000
 #endif
 
 CPU_CLOCK_FREQ              = (CPU_CLOCK * 1000000)
@@ -86,10 +85,6 @@ CPU_CLOCK_FREQ              = (CPU_CLOCK * 1000000)
 UART_DIVISOR                = (UART_CLK_FREQ / (16 * UART_BAUD_RATE))
 UART_DIVISOR_H              = (UART_DIVISOR >> 8)
 UART_DIVISOR_L              = (UART_DIVISOR & 0xff)
-
-EX_UART_DIVISOR             = (EX_UART_CLK_FREQ / (16 * UART_BAUD_RATE))
-EX_UART_DIVISOR_H           = (EX_UART_DIVISOR >> 8)
-EX_UART_DIVISOR_L           = (EX_UART_DIVISOR & 0xff)
 
 //-------------------------------------------------------------------------------------------------
 //UART Register
@@ -125,7 +120,6 @@ UART_FCR_TRIGGER_14         = 0xC0      //Mask for trigger set at 14
 //UART 0 = 1: enable UART 0  Disable UART 2
 //UART 0 = 0: enable UART 2  Disable UART 0
 BOOTINFO_UART0_ENABLE       = 1
-BOOTINFO_UART1_ENABLE       = 1
 BOOTINFO_UART2_ENABLE       = 1
 
 //-------------------------------------------------

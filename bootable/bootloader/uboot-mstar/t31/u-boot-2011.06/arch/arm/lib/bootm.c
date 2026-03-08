@@ -787,7 +787,7 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
         char * ldm_led_device_name = getenv("ldm_led_device_name");
         if (ldm_led_device_name){
             char ldm_led_device_name_arg[32] = {0};
-            UBOOT_DEBUG("ldm_led_device_name = %s!\n", ldm_led_device_name);
+            UBOOT_DEBUG("ldm_led_device_name = %d!\n", ldm_led_device_name);
 
             if(!strcmp(ldm_led_device_name, "ape5030"))
             {
@@ -798,7 +798,7 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
                 if(ape5030_ch_map)
                 {
                     char ape5030_ch_map_arg[64] = {0};
-                    UBOOT_DEBUG("ape5030_ch_map = %s!\n", ape5030_ch_map);
+                    UBOOT_DEBUG("ape5030_ch_map = %d!\n", ape5030_ch_map);
 
                     if(strlen(ape5030_ch_map) == 35) // 35 character, ex: "FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF".
                     {

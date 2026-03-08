@@ -581,15 +581,6 @@ EN_BOOT_MODE get_boot_mode_from_mtd0(void)
                 if(strstr(p_msg->recovery, BOOT_MODE_RECOVERY_WIPEDATA))
                 {
                     factory_reset_mode = 1;
-                    char *led_standby_setting = getenv("led_standby_setting");
-                    if (led_standby_setting) {
-                        // UBOOT_INFO("factory_reset_mode: led_standby_setting=%s\n", led_standby_setting);
-                        if (strcmp(led_standby_setting, "0") == 0) {
-                            // UBOOT_INFO("factory_reset_mode: restore led_standby_setting to default\n");
-                            setenv("led_standby_setting", NULL);
-                            saveenv();
-                        }
-                    }
                 }
                 /* clear the silent ota flag */
                 Write2Byte(BOOT_REASON_PM_ADDR_OFFSET, boot_reason&(~PM_SPARE_SPECIAL_MODE_SILENT_OTA));
