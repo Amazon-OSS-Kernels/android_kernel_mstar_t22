@@ -1279,7 +1279,6 @@ int Str2U16Array(char *str, MS_U16 *pu16Array)
         *(pu16Array++)=u16Number;
         str+=2;
     }
-    UBOOT_INFO("\n");
     return 0;
 }
 
