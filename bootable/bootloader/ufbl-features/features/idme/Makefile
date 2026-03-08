@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2022 Amazon.com, Inc. or its affiliates. All Rights Reserved
+# Copyright (c) 2015-2023 Amazon.com, Inc. or its affiliates. All Rights Reserved
 
 #
 # Common list of objects files we want to include
@@ -22,7 +22,7 @@ IDME_OBJECTS += idme_platform_ABC.o
 else ifeq (yes,$(findstring yes,$(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) \
     $(UFBL_PROJ_SOPHIA) $(UFBL_PROJ_ABC) $(UFBL_PLAT_MTK_T31) $(UFBL_PLAT_MTK_MT9022)))
 IDME_OBJECTS += idme_platform_mstar.o
-else ifeq (yes, $(findstring yes, $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) \
+else ifeq (yes, $(findstring yes, $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) \
     $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABC) $(UFBL_PLAT_AML_T950X4) $(UFBL_PROJ_ABC) $(UFBL_PROJ_ABCBO) \
     $(UFBL_PLAT_AML_S905Y4)))
 IDME_OBJECTS += idme_platform_amlogic.o
