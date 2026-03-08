@@ -1,0 +1,4 @@
+tftp 0x20400000 ./out/rom_emmc_boot.bin
+mmc write.boot 1 0x20400000 0 $(filesize)
+tftp 0x20500000 ./out/mboot.bin
+mmc write 0x20500000 0x1000 $(filesize)

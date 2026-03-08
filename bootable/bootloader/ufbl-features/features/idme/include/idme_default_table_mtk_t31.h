@@ -115,14 +115,14 @@ const struct idme_init_values idme_default_values[] = {
 		/* device specific flag */
 		"/config/model/Customer_1.ini"
 	},
-#if defined(UFBL_PROJ_DUCKIE)
-/* DUCKIE uses small memory similar to older FTVE projects and can't be changed as it is in production */
+#if defined(UFBL_PROJ_ABC)
+/* ABC uses small memory similar to older FTVE projects and can't be changed as it is in production */
 	{ { "cert", 115712, 0, 0444 },
 		/* certificate backup, 128-15 K */
 		""
 	},
 #else
-/* increase default value from brandenburg to make sure it has the larger size */
+/* increase default value from ABC to make sure it has the larger size */
 	{ { "cert", 246784, 0, 0444 },
 		/* certificate backup, 256-15 K */
 		"0"
@@ -157,7 +157,7 @@ const struct idme_init_values idme_default_values[] = {
 		/* configure for different keylaout on TV */
 		"0"
 	},
-#if defined(UFBL_PROJ_BRANDENBURG)
+#if defined(UFBL_PROJ_ABC)
 	{ { "remote_type", 4, 1, 0444 },
 		/* configure for different type remote (IR only or BLE) on TV */
 		/* 0: BLE remote, 1: IR only remote for 4 series TV */

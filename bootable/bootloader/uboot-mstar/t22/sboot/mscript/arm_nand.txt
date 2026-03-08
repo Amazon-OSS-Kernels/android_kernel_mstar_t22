@@ -1,0 +1,9 @@
+# update mboot
+tftp 0x20400000 NANDINFO.nni
+tftp 0x20410000 PAIRPAGEMAP_v2.ppm
+tftp 0x20420000 PARTITION_v2_default.pni
+tftp 0x20430000 HASH0_DAT.bin
+tftp 0x20433800 mboot.bin
+
+ncishash 0x20400000 0x20410000 0x20420000 0x20430000 0x3800 0x20433800 $(filesize)
+% <- this is end of file symbol
