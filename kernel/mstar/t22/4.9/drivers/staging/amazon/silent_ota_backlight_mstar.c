@@ -142,8 +142,6 @@ unsigned int toggle_backlight(unsigned int keycode)
 				(keycode == KEY_APP2) ||
 				(keycode == KEY_APP3) ||
 				(keycode == KEY_APP4) ||
-				(keycode == KEY_BUTTON1) ||
-				(keycode == KEY_BUTTON2) ||
 				(keycode == KEY_WAKEUP)) {
 			if (!backlight_status)
 				set_backlight(1);
