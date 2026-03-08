@@ -50,7 +50,6 @@
 #include <onenand_uboot.h>
 #include <mmc.h>
 #include <stdio.h>
-#include <linux/ctype.h>
 // MSTAR start
 #include <MsInit.h>
 #include <ShareType.h>
@@ -514,69 +513,6 @@ extern U32 FtlTest_PwrCutTestRun(U32 LoopCnt);
 
 unsigned int u32UbootStart = 0;
 unsigned int u32UbootEnd = 0;
-
-static int valid_part(char* s)
-{
-    int n = strlen(s);
-    int i;
-
-    // length of string should not more than 3
-    if (n > 3)
-        return 0;
-
-    // check if the string only contains digits
-    for (i=0; i<n; i++)
-        if ((s[i] >= '0' && s[i] <= '9') == false)
-            return 0;
-
-    int v = atoi(s);
-    // check if the number is between 0 to 255
-    return (v >= 0 && v <= 255);
-}
-
-static int is_valid_ipaddr(char* pAddr)
-{
-    int counter = 0;
-    char pStrIP[32] = {0};
-
-    strncpy(pStrIP, pAddr, strlen(pAddr));
-
-    char* p = strtok(pStrIP, ".");
-    while (p)
-    {
-        if (valid_part(p))
-        {
-            p = strtok(NULL, ".");
-            if (p != NULL)
-                ++counter;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-
-    // valid IP string must contain 3 dots
-    if (counter != 3)
-        return 0;
-    return 1;
-}
-
-static int is_valid_macaddr(char* str)
-{
-    int i;
-
-    if (str == NULL)
-        return 0;
-
-    // check input string is hexdecimal digits
-    for (i=0; i<12; i++)
-        if (isxdigit(str[i]) == 0)
-            return 0;
-
-    return 1;
-}
-
 void board_init_r (gd_t *id, ulong dest_addr)
 {
 	char *s;
@@ -778,19 +714,16 @@ void board_init_r (gd_t *id, ulong dest_addr)
         char *ipInEnv = NULL;
         if (!idme_get_var_external("eth_ip_addr", idmeipaddr, sizeof(idmeipaddr)-1) &&
             strchr((const char*)idmeipaddr, '.')) {
-            if (is_valid_ipaddr(idmeipaddr))
-                ipToUse = idmeipaddr;
-            else
-                ipToUse = DEFAULT_IP_ADDR; // 192.168.1.101
+           ipToUse = idmeipaddr;
         } else {
-            ipToUse = DEFAULT_IP_ADDR; // 192.168.1.101
+           ipToUse = DEFAULT_IP_ADDR; // 192.168.1.101
         }
         ipInEnv = getenv("ipaddr");
         /* Need to update env variable ipaddr? */
         if ((!ipInEnv) || (strcmp(ipToUse, ipInEnv))) {
-            snprintf(ipaddrcmd, sizeof(ipaddrcmd), "setenv ipaddr %s", ipToUse);
-            run_command(ipaddrcmd, 0);
-            bNeedToSave = 1;
+           snprintf(ipaddrcmd, sizeof(ipaddrcmd), "setenv ipaddr %s", ipToUse);
+           run_command(ipaddrcmd, 0);
+           bNeedToSave = 1;
         }
 
         char idmemacaddr[32] = {0};
@@ -799,19 +732,17 @@ void board_init_r (gd_t *id, ulong dest_addr)
         char *macInEnv = NULL;
         if (!idme_get_var_external("eth_mac_addr", idmemacaddr, sizeof(idmemacaddr)-1) &&
             strlen((const char*)idmemacaddr) == 12) {
-            if (!is_valid_macaddr(idmemacaddr))
-                memset(idmemacaddr, 0, sizeof(idmemacaddr));
-            snprintf(addrwithsep, sizeof(addrwithsep), "%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
-                        idmemacaddr[0], idmemacaddr[1], idmemacaddr[2], idmemacaddr[3],
-                        idmemacaddr[4], idmemacaddr[5], idmemacaddr[6], idmemacaddr[7],
-                        idmemacaddr[8], idmemacaddr[9], idmemacaddr[10], idmemacaddr[11]);
-            macInEnv = getenv("macaddr");
-            /* Need to update env variable macaddr? */
-            if ((!macInEnv) || (strcmp(addrwithsep, macInEnv))) {
-                snprintf(macaddrcmd, sizeof(macaddrcmd), "setenv macaddr %s", addrwithsep);
-                run_command(macaddrcmd, 0);
-                bNeedToSave = 1;
-            }
+           snprintf(addrwithsep, sizeof(addrwithsep), "%c%c:%c%c:%c%c:%c%c:%c%c:%c%c",
+                          idmemacaddr[0], idmemacaddr[1], idmemacaddr[2], idmemacaddr[3],
+                          idmemacaddr[4], idmemacaddr[5], idmemacaddr[6], idmemacaddr[7],
+                          idmemacaddr[8], idmemacaddr[9], idmemacaddr[10], idmemacaddr[11]);
+           macInEnv = getenv("macaddr");
+           /* Need to update env variable macaddr? */
+           if ((!macInEnv) || (strcmp(addrwithsep, macInEnv))) {
+              snprintf(macaddrcmd, sizeof(macaddrcmd), "setenv macaddr %s", addrwithsep);
+              run_command(macaddrcmd, 0);
+              bNeedToSave = 1;
+           }
         }
 
         char dev_flags_buf[8] = {0};
