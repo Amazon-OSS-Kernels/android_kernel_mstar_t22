@@ -1,9 +1,9 @@
-#!/bin/bash +x
+#!/bin/bash
 ################################################################################
 #
-#  build_kernel.sh
+#  build_uboot.sh
 #
-#  Copyright (c) 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#  Copyright (c) 2020-2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 ################################################################################
 
@@ -31,23 +31,12 @@ SCRIPT_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_BASE_DIR}/build_uboot_config.sh"
 
 # Workspace directory & relevant temp folders.
-if [ -d "${PLATFORM_TARBALL}" ]; then
-    WORKSPACE_DIR="${PLATFORM_TARBALL}"
-else
-    WORKSPACE_DIR="$(mktemp -d)"
-fi
-
+WORKSPACE_DIR="$(mktemp -d)"
 PLATFORM_EXTRACT_DIR="${WORKSPACE_DIR}/src"
-
-for d in "${PLATFORM_EXTRACT_DIR}"
-do
-    mkdir -p "${d}"
-done
+mkdir -p "${PLATFORM_EXTRACT_DIR}"
 
 # Remove workspace directory upon completion.
 trap "rm -rf $WORKSPACE_DIR" EXIT
-
-PARALLEL_EXECUTION="-j8"
 
 function usage {
     echo "Usage: ${BASH_SOURCE[0]} path_to_platform_tar output_folder" 1>&2
@@ -55,7 +44,7 @@ function usage {
 }
 
 function validate_input_params {
-    if [[ ! -f "${PLATFORM_TARBALL}" ]] && [[ ! -d "${PLATFORM_TARBALL}" ]]
+    if [[ ! -f "${PLATFORM_TARBALL}" ]]
     then
         echo "ERROR: Platform tarball not found."
         usage
@@ -65,6 +54,17 @@ function validate_input_params {
     then
         echo "ERROR: Could not find config file ${CONFIG_FILE}. Please check" \
              "that you have extracted the build script properly and try again."
+        usage
+    fi
+}
+
+function validate_cross_compiler {
+    if [[ ! -d "${CROSS_COMPILER_PATH}" || \
+          ! -d "${CROSS_COMPILER_PATH}/bin" ]]
+    then
+        echo "ERROR: Invalid or missing path to cross compiler" \
+             "${CROSS_COMPILER_PATH}.  Please check and update" \
+             "build_uboot_config.sh"
         usage
     fi
 }
@@ -107,10 +107,10 @@ function extract_tarball {
 }
 
 function exec_build_uboot {
+    # Move into the build base folder.
     pushd "${PLATFORM_EXTRACT_DIR}/${UBOOT_SUBPATH}"
-
-    cp ${CONFIG_FILE} mk_config
-    ./mk sophia
+    cp -f ${CONFIG_FILE} ./mk_config
+    ./mk mtk_t31
 
     if [[ $? -ne 0 ]]
     then
@@ -123,10 +123,9 @@ function exec_build_uboot {
 
 function copy_to_output {
     echo "Copying Uboot files to output"
+    local IFS=":"
     UBOOT_OUT_DIR="${PLATFORM_EXTRACT_DIR}/${UBOOT_SUBPATH}"
     pushd "${UBOOT_OUT_DIR}"
-
-    local IFS=":"
     for IMAGE in ${UBOOT_IMAGES};do
         local BASEDIR="$(dirname "${IMAGE}")"
         if [[ ! -d "${TARGET_DIR}/${BASEDIR}" ]]
@@ -159,14 +158,13 @@ function validate_output {
 # Phase 1: Set up execution
 validate_input_params
 source "${CONFIG_FILE}"
+validate_cross_compiler
 setup_output_dir
 TARGET_DIR="$(cd "${TARGET_DIR}" && pwd)"
 display_config
 
 # Phase 2: Set up environment
-if [ -z "$(ls -A ${PLATFORM_EXTRACT_DIR})" ]; then
-    extract_tarball
-fi
+extract_tarball
 
 # Phase 3: build uboot
 exec_build_uboot
