@@ -1,0 +1,86 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&soc_m7632>;
+        __overlay__ {
+            android {
+				dtbo_overlay = "__overlay_success";
+				dtbo_addNode = "__AddNode_success";
+            };
+			android_test {
+				dtbo_addSubeNode = "__adddd_subeNode_property";
+			};
+       };
+   };
+
+
+
+	fragment@1 {
+		target = <&clock_info>;
+		__overlay__ {
+			level = <3>;
+			pairs {
+				setting_0 {
+					min-clock = <1150>;
+					max-clock = <1350>;
+					power-ss =  <100>;
+					power-ff =  <95>;
+				};
+				setting_1 {
+					min-clock = <1350>;
+					max-clock = <1500>;
+					power-ss =  <107>;
+					power-ff =  <102>;
+				};
+				setting_2 {
+					min-clock = <1500>;
+					max-clock = <1501>;
+					power-ss =  <115>;
+					power-ff =  <110>;
+				};
+			};
+		};
+	};
+
+
+        fragment@2 {
+                target = <&power_info>;
+                __overlay__ {
+			type = "i2c";
+			parm {
+				set =       "hw";
+				port =      <3>;
+				slave-id =  <0x80>;
+				id =        <0x9a>;
+				shift =     <1>;
+				step =      <3>;
+			};
+                };
+        };
+
+        fragment@3 {
+                target = <&keypad>;
+                __overlay__ {
+                        keypad0 {
+                                mtk,keypad-lowbd = <85>;
+                        };
+                        keypad1 {
+                                mtk,keypad-lowbd = <85>;
+                        };
+                        keypad2 {
+                                mtk,keypad-lowbd = <85>;
+                        };
+                        keypad3 {
+                                mtk,keypad-lowbd = <85>;
+                        };
+                        keypad4 {
+                                mtk,keypad-lowbd = <85>;
+                        };
+                };
+        };
+
+};
+
+

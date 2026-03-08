@@ -1,0 +1,47 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&soc_m7632>;
+        __overlay__ {
+            android {
+                dtbo_overlay = "__overlay_success";
+                dtbo_addNode = "__AddNode_success";
+                fstab {
+                    product {
+                        compatible = "android,product";
+                        dev = "/dev/block/platform/mstar_mci.0/by-name/product";
+                        type = "ext4";
+                        mnt_flags = "ro";
+                        fsmgr_flags = "wait,verify";
+                    };
+                };
+            };
+            android_test {
+                dtbo_addSubeNode = "__adddd_subeNode_property";
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&backlight>;
+        __overlay__ {
+            bl_ctrl_shelly = <120>;
+        };
+    };
+
+    fragment@2 {
+        target = <&irblaster_gpio>;
+        __overlay__ {
+            irblaster-gpio_shelly = <91>;
+            irblaster-inverse = <0>;
+            irblaster-ctrl_shelly = <167>;
+            irblaster-enable_shelly = <1>;
+            irblaster-pwm_shelly = <2>;
+        };
+    };
+
+};
+
+

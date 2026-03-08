@@ -1,0 +1,5 @@
+config MSTAR_TOOL_DAEMON_XC_ACTION
+tristate "Tool Daemon XC Action Handler"
+help
+    XC Action Handler for MStar Tool Daemon
+

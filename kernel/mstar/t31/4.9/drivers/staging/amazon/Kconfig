@@ -1,0 +1,77 @@
+menu "Amazon"
+
+config AMAZON
+	bool "Amazon Drivers"
+
+	default n
+	---help---
+	  Enable support for various drivers needed on the Amazon Fire OS platform
+
+if AMAZON
+
+config AMAZON_SIGN_OF_LIFE
+	bool "Amazon Sign of Life"
+	default n
+	---help---
+          Use to log device boot and shutdown metrics.
+          This is a generic driver, the platform part is implemented
+          to do the real work.
+
+config AMAZON_SIGN_OF_LIFE_MSTAR
+	bool "Amazon Sign of Life MStar platform implementation"
+	depends on AMAZON_SIGN_OF_LIFE
+	default n
+	---help---
+	  The life cycle is implemented on MStar platform to record
+	  boot/shutdown information.
+
+
+config AMAZON_METRICS_LOG
+	bool "Amazon Metrics logger driver"
+	select RING_BUFFER
+	default n
+	---help---
+	  Enable Amazon Metrics/Vitals logger driver
+
+config AMAZON_MINERVA_METRICS_LOG
+	bool "Amazon Minerva Metrics logger"
+	select RING_BUFFER
+	default n
+	---help---
+	  Enable Amazon Minerva logger
+
+config AMAZON_METRICS_LOG_TEST
+	tristate "Amazon Metrics logger driver test module"
+	depends on AMAZON_METRICS_LOG
+	default n
+	---help---
+	  Enable Amazon Metrics/Vitals logger test module
+
+config AMAZON_SILENT_OTA_BACKLIGHT
+	bool "Amazon silent ota backlight control"
+	default n
+	---help---
+	  Enable Amazon silent ota backlight control
+
+config AMAZON_HID_BATTERY_NOTIFICATION
+	bool "HID Battery Notification"
+	default n
+
+config MP_MSTAR_POWER
+	tristate "MStar Power"
+	help
+	  Implement kernel power driver for MSTAR T22.
+
+config AMZ_MISC
+	bool "Amazon cutomization"
+	default n
+
+config MP_RTC_WAKEUP_DEBUG
+	bool "Amazon cutomization"
+	default n
+
+endif # if AMAZON
+
+source "drivers/staging/amazon/dspframework/Kconfig"
+
+endmenu

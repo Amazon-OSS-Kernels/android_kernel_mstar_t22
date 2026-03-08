@@ -1,0 +1,8 @@
+
+config SENSORS_SC1233A
+        tristate "SOCIONEXT SC1233A motion_sensor"
+        depends on I2C && SYSFS
+        default n
+        help
+          Say Y here if you want to build a driver for Socionext SC1233A.
+

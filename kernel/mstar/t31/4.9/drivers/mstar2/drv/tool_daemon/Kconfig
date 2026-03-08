@@ -1,0 +1,5 @@
+config MSTAR_TOOL_DAEMON
+tristate "Tool Daemon"
+help
+    Daemon for MStar Tool
+
