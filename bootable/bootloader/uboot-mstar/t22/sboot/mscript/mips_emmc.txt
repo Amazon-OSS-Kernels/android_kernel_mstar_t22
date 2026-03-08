@@ -1,0 +1,7 @@
+# upgrade sboot
+tftp 0x80400000 ../../out/rom_emmc_boot.bin
+mmc write.boot 1 0x80400000 0 0x12800
+
+# upgrade uboot
+tftp 0x80400000 ../../out/mboot.bin
+mmc write.p 0x80400000 MBOOT $(filesize)
