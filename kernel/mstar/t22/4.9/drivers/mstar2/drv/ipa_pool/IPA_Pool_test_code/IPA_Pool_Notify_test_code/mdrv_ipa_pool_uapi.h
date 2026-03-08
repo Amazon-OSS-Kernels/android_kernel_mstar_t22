@@ -1,0 +1,258 @@
+/* SPDX-License-Identifier: GPL-2.0-only OR BSD-3-Clause */
+/******************************************************************************
+ *
+ * This file is provided under a dual license.  When you use or
+ * distribute this software, you may choose to be licensed under
+ * version 2 of the GNU General Public License ("GPLv2 License")
+ * or BSD License.
+ *
+ * GPLv2 License
+ *
+ * Copyright(C) 2019 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ *
+ * BSD LICENSE
+ *
+ * Copyright(C) 2019 MediaTek Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *  * Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *****************************************************************************/
+
+#ifndef _MDRV_IPA_POOL_UAPI_H_
+#define _MDRV_IPA_POOL_UAPI_H_
+
+#include "MsTypes.h"
+
+
+
+#define MAP_USAGE_APPLICATION 0x00000001//application(upper layer of utopia) will access virtual address
+#define MAP_USAGE_UTOPIA 0x00000002   //utopia will access Virtual address internally
+#define IPAPOOL_HEAP_NAME_MAX_LEN 32
+#define PR_MAX_POLL_EVENTS 20
+
+#define IPAPOOL_NAME_MAX_LONG 128
+
+//#define STR_ALLOC_FREE_DEBUG //only debug use
+
+//enum for mapping virtual address type
+enum IPA_MAP_VA_TYPE
+{
+    IPA_MAP_VA_NO_NEEDED = 0,  //we don't need to map VA
+    IPA_VA_CACHE_WRITE_BACK = 1, //we need to map VA with cache type "write back", which is normally used
+    IPA_VA_CACHE_WRITE_THROUGH = 2, //we need to map VA with cache type "write through", which is //mostly used by graphic system
+    IPA_VA_CACHE_NONE_CACHE = 3,  //we don't need data cache
+    IPA_VA_TYPE_MAX = 0xFFFFFFFF//force enum size to be 4 byte alignment
+};
+//enum for IPA_HEAP_TYPE
+enum IPA_HEAP_TYPE
+{
+    IPA_HEAP_TYPE_PA = 0,  //directly PA space
+    IPA_HEAP_TYPE_MTLB = 1, //MTLB heap
+    IPA_HEAP_TYPE_CMA = 2, //CMA heap
+    IPA_IPA_HEAP_TYPE_INVALID = 0xFFFFFFFF//force enum size to be 4 byte alignment
+};
+
+struct IPA_Pool_Init_Args
+{
+    MS_U32 heap_id;     //in: maybe shared with more than one pools which based on this heap
+    //MS_U64 pool_name;   //global identify name for pool to shared between multiple process (char*)
+    MS_U8 pool_name[IPAPOOL_NAME_MAX_LONG];
+
+    MS_U64 offset;    //in: pool location in heap address space
+    MS_U64 len;       //in: pool length inheap address space
+
+    MS_U32 map_usage;// MAP_USAGE_APPLICATION or MAP_USAGE_UTOPIA or both
+
+    MS_U32 pool_handle_id; //out: generate pool id based on heap specified by heap id
+    MS_U32 miu;  //out: miu id this heap belongs, index from 0.
+    MS_U32 heap_type;//out: return heap type to application (enum IPA_HEAP_TYPE )
+    MS_S32 error_code; // error code when failed  
+ 
+    MS_U64 heap_length; //out: heap leagth
+    MS_U64 heap_miu_start_offset; //out: heap start offset in miu, meaningless in case of MTLB heap
+};
+
+struct IPA_Pool_Deinit_Args
+{
+    MS_U32 pool_handle_id; //out: generate pool id based on heap specified by heap id
+};
+
+struct IPA_Pool_Alloc_Args
+{
+    MS_U32 pool_handle_id; //in: pool handle id, when pool init, returned by kernel
+    MS_U64 offset_in_pool;  //in: offset in pool
+    MS_U64 length;               //in  alloc length
+    MS_U32 timeout;//in :if using polling thread,will set timeout value(unit in ms),else is 0    
+    MS_S32 error_code; // out: error code when failed
+};
+
+#if 1//only samson debug code
+struct IPA_Pool_STR_Alloc_Args
+{
+    MS_U64 start; //in: start pos refer to bus
+    MS_U64 length;               //in  alloc length
+    MS_S32 error_code;
+};
+#endif
+
+struct IPA_Pool_free_Args
+{
+    MS_U32 pool_handle_id; //in: pool handle id, when pool init, returned by kernel
+    MS_U64 offset_in_pool;  //in: offset in pool
+    MS_U64 length;               //in  free length
+};
+
+#if 1//only samson debug code
+struct IPA_Pool_STR_free_Args
+{
+    MS_U64 start; //in: start pos refer to bus
+    MS_U64 length;               //in  free length
+    MS_S32 error_code;
+};
+#endif
+
+struct IPA_Pool_Map_Args
+{
+    MS_U32 pool_handle_id; //in: pool handle id, when pool init, returned by kernel
+    MS_U64 offset_in_pool;  //in: offset in pool
+    MS_U64 length;               //in  mapping length
+    MS_U32 map_va_type;//in: indicate dcache type of Virtual address mapping (enum IPA_MAP_VA_TYPE)
+    MS_U64 virt_addr;          //out: if map_usage: MAP_USAGE_APPLICATION is setted & map_va_type
+                                       //doesn't equal to IPA_MAP_VA_NO_NEEDED
+    MS_S32 error_code; // out: error code when failed
+};
+
+struct IPA_Pool_Unmap_Args
+{
+    MS_U64 virt_addr; //in: the VA need to unmap
+    MS_U64 length;               //in: unmap length
+};
+
+struct IPA_Pool_GetIpcHandle_Args
+{
+    MS_U32 pool_handle_id; //in: pool handle id, when pool init, returned by kernel
+    MS_U32 ipc_handle_id;  //out: returned by kernel
+    MS_S32 error_code; // out: error code when failed
+};
+
+struct IPA_Pool_InstallIpcHandle_Args
+{
+    MS_U32 ipc_handle_id;  //in: returned by kernel, when get IPC handle
+    MS_U32 pool_handle_id; //out: pool handle id
+    MS_S32 error_code; // out: error code when failed
+};
+
+enum IPA_DCACHE_FLUSH_TYPE
+{
+    IPA_DCACHE_FLUSH,//flush dcache into DRAM
+    IPA_DCACHE_INVALID,// invalid dcache lines
+    IPA_DCACHE_FLUSH_INVALID// flush and invalid dcache lines
+};
+
+struct IPA_Pool_DCacheFlush_Args
+{
+    MS_U64 virt_addr; //in: the VA need to flush
+    MS_U64 length;               //in: flush length
+    MS_U32 flush_type;// in: flush type (enum IPA_DCACHE_FLUSH_TYPE)
+};
+
+struct IPA_Pool_Heap_Attr
+{
+    MS_U32 heap_id;     //in: maybe shared with more than one pools which based on this heap
+
+    char   name[IPAPOOL_HEAP_NAME_MAX_LEN]; //out: heap name    
+    MS_U64 heap_miu_start_offset; //out: heap start offset in miu
+    MS_U64 heap_length; //out: heap leagth
+    MS_U32 miu;  //out: miu id this heap belongs, index from 0.
+    MS_U32 heap_type;//out: return heap type to application (enum IPA_HEAP_TYPE )
+    MS_S32 error_code; // error code when failed 
+};
+enum IPA_event_Args
+{
+  IPA_EVENT_CONFLICT = (1<<0),
+  IPA_EVENT_NO_WAIT =(1<<1),
+  IPA_EVNET_NUM
+};
+
+struct IPA_Pool_Event_Args
+{
+    MS_U32 pool_handle_id;//in
+    enum IPA_event_Args event;//out
+    MS_U64 start;//out
+    MS_U64 length;//out
+};
+
+
+//-------------------------------------------------------------------------------------------------
+//  IO command
+//-------------------------------------------------------------------------------------------------
+#define IPA_POOL_IOC_MAGIC   'P'
+
+#define IPA_POOL_IOC_INIT   _IOWR(IPA_POOL_IOC_MAGIC, 0x00, struct IPA_Pool_Init_Args)
+#define IPA_POOL_IOC_ALLOC  _IOWR(IPA_POOL_IOC_MAGIC, 0x01, struct IPA_Pool_Alloc_Args)
+#define IPA_POOL_IOC_FREE   _IOW(IPA_POOL_IOC_MAGIC, 0x02, struct IPA_Pool_free_Args)
+#define IPA_POOL_IOC_MAP   _IOWR(IPA_POOL_IOC_MAGIC, 0x03, struct IPA_Pool_Map_Args)
+#define IPA_POOL_IOC_UNMAP   _IOW(IPA_POOL_IOC_MAGIC, 0x04, struct IPA_Pool_Unmap_Args)
+#define IPA_POOL_IOC_FLUSH   _IOW(IPA_POOL_IOC_MAGIC, 0x05, struct IPA_Pool_DCacheFlush_Args)
+#define IPA_POOL_IOC_DEINIT   _IOW(IPA_POOL_IOC_MAGIC, 0x06, struct IPA_Pool_Deinit_Args)
+#define IPA_POOL_IOC_HEAP_ATTR   _IOWR(IPA_POOL_IOC_MAGIC, 0x07, struct IPA_Pool_Heap_Attr)
+#define IPA_POOL_IOC_GETIPCHANDLE _IOWR(IPA_POOL_IOC_MAGIC, 0x08, struct IPA_Pool_GetIpcHandle_Args)
+#define IPA_POOL_IOC_INSTALLIPCHANDLE _IOWR(IPA_POOL_IOC_MAGIC, 0x09, struct IPA_Pool_InstallIpcHandle_Args)
+#define IPA_POOL_IOC_POLL  _IOWR(IPA_POOL_IOC_MAGIC, 0x0A, struct IPA_Pool_Event_Args)
+#define IPA_POOL_IOC_KERNEL_MAP   _IOWR(IPA_POOL_IOC_MAGIC, 0x0B, struct IPA_Pool_Map_Args)
+#define IPA_POOL_IOC_KERNEL_UNMAP   _IOW(IPA_POOL_IOC_MAGIC, 0x0C, struct IPA_Pool_Unmap_Args)
+
+#if 1//only samson debug code 
+#define IPA_POOL_IOC_STR_ALLOC _IOWR(IPA_POOL_IOC_MAGIC, 0x10, struct IPA_Pool_STR_Alloc_Args)
+#define IPA_POOL_IOC_STR_FREE _IOW(IPA_POOL_IOC_MAGIC, 0x11, struct IPA_Pool_STR_free_Args)
+
+#endif
+
+#define IPAERROR_OK     0
+#define IPAERROR_RANGE_INVLAID    1
+#define IPAERROR_RANGE_NOALIGN    2
+#define IPAERROR_CREATE_POOL      3
+#define IPAERROR_ATTACH_POOL      4
+#define IPAERROR_NO_POOL           5
+#define IPAERROR_POOL_NOT_INIT    6
+#define IPAERROR_ADDR_TYPE_INV    7
+#define IPAERROR_CREATE_VM        8
+#define IPAERROR_CANT_MAP         9
+#define IPAERROR_MAP_FAIL         10
+#define IPAERROR_KERNEL_NOMEM    11
+#define IPAERROR_RANGE_NOTMAPPED 12
+#endif

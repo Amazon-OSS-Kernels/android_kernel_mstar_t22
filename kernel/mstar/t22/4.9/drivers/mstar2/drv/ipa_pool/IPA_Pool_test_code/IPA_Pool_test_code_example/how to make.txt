@@ -1,0 +1,50 @@
+if arm64:
+aarch64-linux-gnu-gcc -o IPA_Pool_test_code IPA_Pool_test_code.c -static -pthread
+
+if arm32:
+arm-none-linux-gnueabi-gcc -o IPA_Pool_test_code IPA_Pool_test_code.c -pthread
+
+
+
+china ftp的环境：
+/Messi_TVOS(don't_delete)/20151111_TVOS-04.18.010.02.01.DMBT.Messi_091B_768M
+//THEALE/RedLion_develop/3.10.40_Messi_CMA2/
+//THEALE/utopia_develop/UTPA2-500.2.x_Messi_CMA2/
+
+这个环境默认的是：
+shell@watermelon:/ # cat /proc/cmdline                                         
+console=ttyS0,115200 androidboot.console=ttyS0 root=/dev/ram rw rootwait init=/init CORE_DUMP_PATH=/data/core_dump.%%p.gz KDebug=1 delaylogo=true androidboot.selinux=permissive swiotlb=512 LX_MEM=0xEB00000 LX_MEM2=0xA0400000,0x1FC00000 EMAC_MEM=0x40000 PM51_ADDR=0x20010000 PM51_LEN=0x10000 BOOTLOGO_IN_MBOOT ENV_VAR_OFFSET=0x0 ENV_VAR_SIZE=0x10000 ENV=EMMC SECURITY=ON CMA0=OTHERS,miu=0,hid=23,sz=0x1c00000,st=0x6c00000 CMA1=VDEC_XC_STR_MBOOT,miu=0,hid=20,sz=0x3000000,st=0x8800000 CMA2=RETURN_ENUM0,miu=0,hid=26,sz=0x2400000,st=0xb800000 CMA3=RETURN_ENUM2,miu=1,hid=27,sz=0x1400000,st=0x400000 CMA4=VDEC1,miu=1,hid=19,sz=0x7000000,st=0x1800000 CMA5=RETURN_ENUM,miu=1,hid=25,sz=0x2000000,st=0x8800000 BOOTTIME_SBOOT=367 BOOTTIME_UBOOT=1546
+shell@watermelon:/ #
+
+
+可见，
+CMA0,CMA1,CMA2是无缝衔接的;CMA3,CMA4,CMA5也是无缝衔接的；
+由于0x8800000 + 0x2000000 = A800000;
+0x1FC00000 + 0x1400000 < 0x1FC00000
+可以新设个如下的CMA6：
+CMA6=heap00,miu=1,hid=28,sz=0x1400000,st=0xA800000
+
+具体做法是在scripts/set_config文件里改成如下的：
+setenv CMA6_Args CMA6=heap00,miu=1,hid=28,sz=0x1400000,st=0xA800000
+
+setenv bootargs console=ttyS0,115200 androidboot.console=ttyS0 root=/dev/ram rw rootwait init=/init CORE_DUMP_PATH=/data/core_dump.%%p.gz KDebug=1 delaylogo=true androidboot.selinux=permissive swiotlb=512 $(CMA6_Args)
+
+
+即加setenv CMA6_Args CMA6=heap00,miu=1,hid=28,sz=0x1400000,st=0xA800000和$(CMA6_Args)这些。
+
+这样就可以在CMA6上做IPA POOL的测试。
+
+
+shell@watermelon:/ # 
+shell@watermelon:/ # 
+shell@watermelon:/ # cat /proc/cmdline                                         
+console=ttyS0,115200 androidboot.console=ttyS0 root=/dev/ram rw rootwait init=/init CORE_DUMP_PATH=/data/core_dump.%%p.gz KDebug=1 delaylogo=true androidboot.selinux=permissive swiotlb=512 CMA6=heap00,miu=1,hid=28,sz=0x1400000,st=0xA800000 LX_MEM=0xEB00000 LX_MEM2=0xA0400000,0x1FC00000 EMAC_MEM=0x40000 PM51_ADDR=0x20010000 PM51_LEN=0x10000 CMA0=OTHERS,miu=0,hid=23,sz=0x1c00000,st=0x6c00000 CMA1=VDEC_XC_STR_MBOOT,miu=0,hid=20,sz=0x3000000,st=0x8800000 CMA2=RETURN_ENUM0,miu=0,hid=26,sz=0x2400000,st=0xb800000 CMA3=RETURN_ENUM2,miu=1,hid=27,sz=0x1400000,st=0x400000 CMA4=VDEC1,miu=1,hid=19,sz=0x7000000,st=0x1800000 CMA5=RETURN_ENUM,miu=1,hid=25,sz=0x2000000,st=0x8800000 BOOTLOGO_IN_MBOOT ENV_VAR_OFFSET=0x0 ENV_VAR_SIZE=0x10000 ENV=EMMC SECURITY=ON BOOTTIME_SBOOT=377 BOOTTIME_UBOOT=2328
+shell@watermelon:/ # cat /sys/kernel/debug/IPA_Heap/heap-28                    
+heapid 28 name heap00 information---------------------------------------------
+miu 1  miu_offset 0xa800000  heap_len 0x1400000  heap_type 1
+
+no allocation in this heap
+shell@watermelon:/ # 
+
+
+

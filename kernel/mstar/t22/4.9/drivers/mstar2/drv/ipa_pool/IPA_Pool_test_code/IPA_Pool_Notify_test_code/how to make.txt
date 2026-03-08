@@ -1,0 +1,18 @@
+if arm64
+aarch64-linux-gnu-gcc -o IPA_Pool_Notify_test_code IPA_Pool_Notify_test_code.c -static -pthread
+
+
+if arm32:
+arm-none-linux-gnueabi-gcc -o IPA_Pool_Notify_test_code IPA_Pool_Notify_test_code.c -pthread
+
+
+Notice:
+IPA_Pool_Notify_test_code.c里的测试code里的函数ipa_init()的第一个参数是heap id.
+
+./IPA_Pool_Notify_test_code.c里的目前test code的基于的假设是heap id为27.当时是在某个平台
+在bootcmd arg里面新增了：
+CMA5=DFB_TEMP,miu=0,hid=27,sz=0x1400000,st=0xFC00000
+而进行测试的（注意st的值是根据原有的cat /proc/cmdline里的值的情况算出来的），所以./IPA_Pool_Notify_test_code.c里的目前test code是base这个heap测试的。
+如果是别的平台而加的类似的heap 的话，需要heap id和sz,st做相应的类似修改,test code也需相应的调整。
+
+
