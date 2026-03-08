@@ -15,6 +15,7 @@
 ccflags-y += \
 	-I$(srctree)/drivers/mstar2/drv/hifi4dsp/hifi4dsp_audio_ipi/mt8570 \
 	-I$(srctree)/drivers/mstar2/drv/hifi4dsp/hifi4dsp_audio_ipi/common/utility \
+	-I$(srctree)/drivers/mstar2/drv/hifi4dsp/hifi4dsp_audio_ipi/common/framework \
 	-I$(srctree)/drivers/mstar2/drv/hifi4dsp/hifi4dsp_ipi/mt8570 \
 	-I$(srctree)/drivers/mstar2/drv/hifi4dsp/hifi4dsp_ipi/common
 

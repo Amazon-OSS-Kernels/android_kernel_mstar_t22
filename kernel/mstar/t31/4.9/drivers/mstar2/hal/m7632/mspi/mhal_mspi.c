@@ -63,7 +63,7 @@
 //-------------------------------------------------------------------------------------------------
 //  Include Files
 //-------------------------------------------------------------------------------------------------
-
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/types.h>
@@ -203,12 +203,12 @@ static MS_BOOL _HAL_MSPI_CheckDone(void)
         if(uDoneFlag & MSPI_DONE_FLAG) {
             return TRUE;
         }
+        usleep_range(10,20);
         uCheckDoneCnt++;
     }
     DEBUG_MSPI(E_MSPI_DBGLV_ERR,printk("ERROR:MSPI Operation Timeout!!!!!\n"));
     return FALSE;
 }
-
 
 //------------------------------------------------------------------------------
 /// Description : Trigger MSPI operation
@@ -406,11 +406,33 @@ MS_BOOL HAL_MSPI_Read(MSPI_CH eChannel, MS_U8 *pData, MS_U16 u16Size)
         for(u8Index = 0; u8Index < j; u8Index++) {
 
             if(u8Index & 1) {
+#if (TXRX_32BYTE_SUPPORTED)
+                if(u8Index >>WB16_INDEX)
+                {
+                      u16TempBuf = MSPI_READ(MSPI_READ_EXT_BUF_OFFSET +WB16_INDEX+((u8Index&(~(1<<WB16_INDEX)))>> 1));
+                }
+                else if(u8Index >>WB8_INDEX)
+                {
+                      u16TempBuf= MSPI_READ(MSPI_READ_EXT_BUF_OFFSET +((u8Index&(~(1<<WB8_INDEX)))>> 1));
+                }
+                else
+#endif
                 u16TempBuf = MSPI_READ((MSPI_READ_BUF_OFFSET + (u8Index >> 1)));
                 DEBUG_MSPI(E_MSPI_DBGLV_DEBUG,printk("read Buf data %x index %d\n",u16TempBuf, u8Index));
                 pData[u8Index] = u16TempBuf >> 8;
                 pData[u8Index-1] = u16TempBuf & 0xFF;
             } else if(u8Index == (j -1)) {
+#if (TXRX_32BYTE_SUPPORTED)
+                if(u8Index >>WB16_INDEX)
+                {
+                      u16TempBuf= MSPI_READ(MSPI_READ_EXT_BUF_OFFSET +WB16_INDEX+((u8Index&(~(1<<WB16_INDEX)))>> 1));
+                }
+                else if(u8Index >>WB8_INDEX)
+                {
+                      u16TempBuf= MSPI_READ(MSPI_READ_EXT_BUF_OFFSET +((u8Index&(~(1<<WB8_INDEX)))>> 1));
+                }
+                else
+#endif
                 u16TempBuf = MSPI_READ((MSPI_READ_BUF_OFFSET + (u8Index >> 1)));
                 DEBUG_MSPI(E_MSPI_DBGLV_DEBUG,printk("read Buf data %x index %d\n",u16TempBuf, u8Index));
                 pData[u8Index] = u16TempBuf & 0xFF;
@@ -441,9 +463,31 @@ MS_BOOL HAL_MSPI_Write(MSPI_CH eChannel, MS_U8 *pData, MS_U16 u16Size)
         if(u8Index & 1) {
             u16TempBuf = (pData[u8Index] << 8) | pData[u8Index-1];
             DEBUG_MSPI(E_MSPI_DBGLV_DEBUG,printk("write Buf data %x index %d\n",u16TempBuf, u8Index));
+#if (TXRX_32BYTE_SUPPORTED)
+                if(u8Index >>WB16_INDEX)
+                {
+                   MSPI_WRITE(MSPI_WRITE_EXT_BUF_OFFSET+WB16_INDEX+((u8Index&(~(1<<WB16_INDEX)))>> 1),u16TempBuf);
+                }
+                else if(u8Index >>WB8_INDEX)
+                {
+                   MSPI_WRITE(MSPI_WRITE_EXT_BUF_OFFSET+((u8Index&(~(1<<WB8_INDEX)))>> 1),u16TempBuf);
+                }
+                else
+#endif
             MSPI_WRITE((MSPI_WRITE_BUF_OFFSET + (u8Index >> 1)),u16TempBuf);
         } else if(u8Index == (u16Size -1)) {
             DEBUG_MSPI(E_MSPI_DBGLV_DEBUG,printk("write Buf data %x index %d\n",pData[u8Index], u8Index));
+#if (TXRX_32BYTE_SUPPORTED)
+                if(u8Index >>WB16_INDEX)
+                {
+                   MSPI_WRITE(MSPI_WRITE_EXT_BUF_OFFSET+WB16_INDEX+((u8Index&(~(1<<WB16_INDEX)))>> 1),pData[u8Index]);
+                }
+                else if(u8Index >>WB8_INDEX)
+                {
+                   MSPI_WRITE(MSPI_WRITE_EXT_BUF_OFFSET+((u8Index&(~(1<<WB16_INDEX)))>> 1),pData[u8Index]);
+                }
+                else
+#endif
             MSPI_WRITE((MSPI_WRITE_BUF_OFFSET + (u8Index >> 1)),pData[u8Index]);
         }
     }

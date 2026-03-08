@@ -1,7 +1,7 @@
-// SC123x Initial DataSet, Socionext Inc.
-// name=2d_normal_60db_1100us
-// hash=f1b21a5cc71e0d120a4b1d00299afa68f65db655
-// date=Fri Jun 19 13:39:21 2020
+/*
+ * Copyright (c) 2022 Amazon.com, Inc. or its affiliates.  All rights reserved.
+ *
+ */
 
 #ifndef _2D_NORMAL_60DB_1100US
 #define _2D_NORMAL_60DB_1100US

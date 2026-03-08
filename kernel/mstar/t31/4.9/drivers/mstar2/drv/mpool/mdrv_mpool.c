@@ -702,249 +702,240 @@ static long _MDrv_MPOOL_Ioctl(struct file *filp, unsigned int cmd, unsigned long
 static int _MDrv_MPOOL_Ioctl(struct inode *inode, struct file *filp, unsigned int cmd, unsigned long arg)
 #endif
 {
-    int         err= 0;
-    int         ret= 0;
+	int         err= 0;
+	int         ret= 0;
 
-    MMAP_FileData *mmapData = filp->private_data ;
+	MMAP_FileData *mmapData = filp->private_data ;
 
-    /*
-     * extract the type and number bitfields, and don't decode
-     * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
-     */
-    if (MPOOL_IOC_MAGIC!= _IOC_TYPE(cmd))
-    {
-        return -ENOTTY;
-    }
+	/*
+	 * extract the type and number bitfields, and don't decode
+	 * wrong cmds: return ENOTTY (inappropriate ioctl) before access_ok()
+	 */
+	if (MPOOL_IOC_MAGIC!= _IOC_TYPE(cmd))
+	{
+		return -ENOTTY;
+	}
 
-    /*
-     * the direction is a bitmask, and VERIFY_WRITE catches R/W
-     * transfers. `Type' is user-oriented, while
-     * access_ok is kernel-oriented, so the concept of "read" and
-     * "write" is reversed
-     */
-    if (_IOC_DIR(cmd) & _IOC_READ)
-    {
-        err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
-    }
-    else if (_IOC_DIR(cmd) & _IOC_WRITE)
-    {
-        err =  !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
-    }
-    if (err)
-    {
-        return -EFAULT;
-    }
+	/*
+	 * the direction is a bitmask, and VERIFY_WRITE catches R/W
+	 * transfers. `Type' is user-oriented, while
+	 * access_ok is kernel-oriented, so the concept of "read" and
+	 * "write" is reversed
+	 */
+	if (_IOC_DIR(cmd) & _IOC_READ)
+	{
+		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
+	}
+	else if (_IOC_DIR(cmd) & _IOC_WRITE)
+	{
+		err =  !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
+	}
+	if (err)
+	{
+		return -EFAULT;
+	}
 
-    // @FIXME: Use a array of function pointer for program readable and code size later
-    switch(cmd)
-    {
-    //------------------------------------------------------------------------------
-    // Signal
-    //------------------------------------------------------------------------------
-    case MPOOL_IOC_INFO:
-        {
-            DrvMPool_Info_t i ;
-	    memset(&i, 0, sizeof(DrvMPool_Info_t));
+	// @FIXME: Use a array of function pointer for program readable and code size later
+	switch(cmd)
+	{
+	//------------------------------------------------------------------------------
+	// Signal
+	//------------------------------------------------------------------------------
+	case MPOOL_IOC_INFO:
+		{
+			DrvMPool_Info_t i;
+			memset(&i, 0, sizeof(DrvMPool_Info_t));
 
-            i.u32Addr = mmapData->mpool_base;
-            i.u32Size = mmapData->mpool_size;
-            MPOOL_DPRINTK("MPOOL_IOC_INFO i.u32Addr = %d\n", i.u32Addr);
-            MPOOL_DPRINTK("MPOOL_IOC_INFO i.u32Size = %d\n", i.u32Size);
+			i.u32Addr = mmapData->mpool_base;
+			i.u32Size = mmapData->mpool_size;
+			MPOOL_DPRINTK("MPOOL_IOC_INFO i.u32Addr = %d\n", i.u32Addr);
+			MPOOL_DPRINTK("MPOOL_IOC_INFO i.u32Size = %d\n", i.u32Size);
+			ret= copy_to_user( (void *)arg, &i, sizeof(i) );
+		}
+		break;
+	case MPOOL_IOC_FLUSHDCACHE:
+		MDrv_MPOOL_IOC_FlushDache(arg);
+		break;
+	case MPOOL_IOC_FLUSHDCACHE_PAVA:
+		{
+			DrvMPool_Flush_Info_t i;
+			ret = copy_from_user(&i, (void __user *)arg, sizeof(i));
 
-            ret= copy_to_user( (void *)arg, &i, sizeof(i) );
-        }
-        break;
-    case MPOOL_IOC_FLUSHDCACHE:        
-	    MDrv_MPOOL_IOC_FlushDache(arg);	
-            
-        
-        break;
-    case MPOOL_IOC_FLUSHDCACHE_PAVA:
-        {
-
-            DrvMPool_Flush_Info_t i ;
-            ret= copy_from_user(&i, (void __user *)arg, sizeof(i));
-
-           /*Compare "u32AddrPhys" with "miu_base" to decide if which miu is located*/
-           if(i.u32AddrPhys >= ARM_MIU3_BASE_ADDR)
-               Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU3_BASE_ADDR) + ARM_MIU3_BUS_BASE , i.u32Size);
-           if((i.u32AddrPhys >= ARM_MIU2_BASE_ADDR) && (i.u32AddrPhys < ARM_MIU3_BASE_ADDR))
-               Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU2_BASE_ADDR) + ARM_MIU2_BUS_BASE , i.u32Size);
-           if((i.u32AddrPhys >= ARM_MIU1_BASE_ADDR) && (i.u32AddrPhys < ARM_MIU2_BASE_ADDR))
-               Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU1_BASE_ADDR) + ARM_MIU1_BUS_BASE , i.u32Size);
-           else
-               Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, i.u32AddrPhys + ARM_MIU0_BUS_BASE , i.u32Size);
-    	}
-        break ;
-    case MPOOL_IOC_GET_BLOCK_OFFSET:
-        {
-            DrvMPool_Info_t i ;
-
-	    memset(&i, 0, sizeof(DrvMPool_Info_t));
-            ret= copy_from_user( &i, (void __user *)arg, sizeof(i) );
-            #if defined(__aarch64__)
-            MDrv_SYS_GetMMAP((int)i.u32Addr, &(i.u32Addr), &(i.u32Size)) ;
-            #else
-            MDrv_SYS_GetMMAP((int)i.u32Addr, (unsigned int *)&(i.u32Addr), (unsigned int *)&(i.u32Size)) ;
+			/*Compare "u32AddrPhys" with "miu_base" to decide if which miu is located*/
+			if(i.u32AddrPhys >= ARM_MIU3_BASE_ADDR)
+				Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU3_BASE_ADDR) + ARM_MIU3_BUS_BASE , i.u32Size);
+			if((i.u32AddrPhys >= ARM_MIU2_BASE_ADDR) && (i.u32AddrPhys < ARM_MIU3_BASE_ADDR))
+				Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU2_BASE_ADDR) + ARM_MIU2_BUS_BASE , i.u32Size);
+			if((i.u32AddrPhys >= ARM_MIU1_BASE_ADDR) && (i.u32AddrPhys < ARM_MIU2_BASE_ADDR))
+				Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, (i.u32AddrPhys - ARM_MIU1_BASE_ADDR) + ARM_MIU1_BUS_BASE , i.u32Size);
+			else
+				Chip_Flush_Cache_Range_VA_PA(i.u32AddrVirt, i.u32AddrPhys + ARM_MIU0_BUS_BASE , i.u32Size);
+		}
+		break;
+	case MPOOL_IOC_GET_BLOCK_OFFSET:
+		{
+			DrvMPool_Info_t i ;
+			memset(&i, 0, sizeof(DrvMPool_Info_t));
+			ret= copy_from_user( &i, (void __user *)arg, sizeof(i) );
+			#if defined(__aarch64__)
+			MDrv_SYS_GetMMAP((int)i.u32Addr, &(i.u32Addr), &(i.u32Size)) ;
+			#else
+			MDrv_SYS_GetMMAP((int)i.u32Addr, (unsigned int *)&(i.u32Addr), (unsigned int *)&(i.u32Size)) ;
             #endif
-            ret= copy_to_user( (void __user *)arg, &i, sizeof(i) );
-        }
-        break ;
-    case MPOOL_IOC_SET_MAP_CACHE:
-        {
-            ret= copy_from_user(&mmapData->u8MapCached, (void __user *)arg, sizeof(mmapData->u8MapCached));
-        }
-        break;
-    case MPOOL_IOC_SET:
-        {
-           	DrvMPool_Info_t i;
-
-	    memset(&i, 0, sizeof(DrvMPool_Info_t));
-           	ret= copy_from_user(&i, (void __user *)arg, sizeof(i));
-            mmapData->setflag = true;
-            mmapData->mmap_offset = i.u32Addr;
-            mmapData->mmap_size = i.u32Size;
-            mmapData->mmap_interval = i.u32Interval;
-            mmapData->mmap_miusel = i.u8MiuSel;
-        }
-        break;
-
+			ret= copy_to_user( (void __user *)arg, &i, sizeof(i) );
+		}
+		break;
+	case MPOOL_IOC_SET_MAP_CACHE:
+		{
+			ret= copy_from_user(&mmapData->u8MapCached, (void __user *)arg, sizeof(mmapData->u8MapCached));
+		}
+		break;
+	case MPOOL_IOC_SET:
+		{
+			DrvMPool_Info_t i;
+			memset(&i, 0, sizeof(DrvMPool_Info_t));
+			ret= copy_from_user(&i, (void __user *)arg, sizeof(i));
+			mmapData->setflag = true;
+			mmapData->mmap_offset = i.u32Addr;
+			mmapData->mmap_size = i.u32Size;
+			mmapData->mmap_interval = i.u32Interval;
+			mmapData->mmap_miusel = i.u8MiuSel;
+		}
+		break;
 	case MPOOL_IOC_KERNEL_DETECT:
-			{
-				DrvMPool_Kernel_Info_t i;
-                		i.u32lxAddr = linux_base;
-				i.u32lxSize = linux_size;
-				i.u32lx2Addr = linux2_base;
-				i.u32lx2Size = linux2_size;
+		{
+			DrvMPool_Kernel_Info_t i;
+			i.u32lxAddr = linux_base;
+			i.u32lxSize = linux_size;
+			i.u32lx2Addr = linux2_base;
+			i.u32lx2Size = linux2_size;
 
-                printk("lxaddr = %08llx, lxsize = %08llx\n", i.u32lxAddr, i.u32lxSize);
-                printk("lx2addr = %08llx, lx2size = %08llx\n", i.u32lx2Addr, i.u32lx2Size);
-				ret= copy_to_user( (void *)arg, &i, sizeof(i) );
-			}
-			break;
-    case MPOOL_IOC_VERSION:
-        {
-            ret= copy_to_user( (void *)arg, &mpool_version, sizeof(mpool_version) );
-        }
-	    break;
-
-    case MPOOL_IOC_FLUSHDCACHE_ALL:
-    {
+			MPOOL_DPRINTK("lxaddr = %08llx, lxsize = %08llx\n", i.u32lxAddr, i.u32lxSize);
+			MPOOL_DPRINTK("lx2addr = %08llx, lx2size = %08llx\n", i.u32lx2Addr, i.u32lx2Size);
+			ret= copy_to_user( (void *)arg, &i, sizeof(i) );
+		}
+		break;
+	case MPOOL_IOC_VERSION:
+		{
+			ret= copy_to_user( (void *)arg, &mpool_version, sizeof(mpool_version) );
+		}
+		break;
+	case MPOOL_IOC_FLUSHDCACHE_ALL:
+		{
 #if !(defined(CONFIG_MSTAR_TITANIA3) || defined(CONFIG_MSTAR_TITANIA10) )
-         Chip_Flush_Cache_All();
+			Chip_Flush_Cache_All();
 #endif
-    }
-    break ;
+		}
+		break;
 #ifdef CONFIG_HAVE_HW_BREAKPOINT
-    //edit by york
-    case MPOOL_IOC_SETWATCHPT:
-    {
-        DrvMPool_Watchpt_Info_t info;
-        ret = copy_from_user(&info, (void __user *)arg, sizeof(info));
+	//edit by york
+	case MPOOL_IOC_SETWATCHPT:
+		{
+			DrvMPool_Watchpt_Info_t info;
+			ret = copy_from_user(&info, (void __user *)arg, sizeof(info));
 #ifdef CONFIG_ARM
-{
-	unsigned int tmp,WCR;
+			{
+				unsigned int tmp,WCR;
 
-	if(info.rwx == 0)	/*read*/
-		WCR = 0x1EF;
-	else if(info.rwx == 1)	/*write*/
-		WCR = 0x1F7;
-        else			/*read,write*/
-		WCR = 0x1FF;
+				if(info.rwx == 0)	/*read*/
+					WCR = 0x1EF;
+				else if(info.rwx == 1)	/*write*/
+					WCR = 0x1F7;
+				else			/*read,write*/
+					WCR = 0x1FF;
 
-	ARM_DBG_WRITE(c0, c0, 6, info.u32AddrVirt);
-	tmp = (info.mask << 24)| WCR ;/*shift 24 is because the mask control bit is defined there*/
-		 ARM_DBG_WRITE(c0, c0, 7, tmp);
+				ARM_DBG_WRITE(c0, c0, 6, info.u32AddrVirt);
+				tmp = (info.mask << 24)| WCR ;/*shift 24 is because the mask control bit is defined there*/
+				ARM_DBG_WRITE(c0, c0, 7, tmp);
 
-	/*printk("The input 0 is:%#x and the mask bit is:%#x\n",tmp,info.mask);
-	tmp = 0;
-	tmp = info.u32AddrVirt | (1  << (info.mask * 4))
-	asm volatile(
-			input[0] = ;
-        "mov	r1, %[i0]\n\t"									\
-        "mov	%[o1], r1\n\t"									\
-        : [o1] "=r"(out)									\
-	: [i0] "g"(tmp)									\
-        : "memory"                                                                              \
-    	);
-	printk("The input 0 is:%#x and  output[1] is :%#x, the size is:%#x\n",tmp,out,info.mask);*/
-        printk("The register is written\n");
-}
+				/*printk("The input 0 is:%#x and the mask bit is:%#x\n",tmp,info.mask);
+				tmp = 0;
+				tmp = info.u32AddrVirt | (1  << (info.mask * 4))
+				asm volatile(
+					input[0] = ;
+					"mov	r1, %[i0]\n\t"									\
+					"mov	%[o1], r1\n\t"									\
+					: [o1] "=r"(out)									\
+					: [i0] "g"(tmp)									\
+					: "memory"                                                                              \
+				);
+				printk("The input 0 is:%#x and  output[1] is :%#x, the size is:%#x\n",tmp,out,info.mask);*/
+				printk("The register is written\n");
+			}
 #elif defined(CONFIG_ARM64)
 #else
-        if(info.global == 1)
-                 write_c0_watchhi0(0x40000000);
+			if(info.global == 1)
+				write_c0_watchhi0(0x40000000);
 #endif
-
-     }
-     break ;
-     case MPOOL_IOC_GETWATCHPT:
-     {
-
-	#ifdef CONFIG_ARM
-	char str[200];
-        DrvMPool_Wcvr_Info_t info;
-	int m;
-        ARM_DBG_READ(c0, c1, 6, info.wvr1);
-	for(m = 0; m < 10000; m++);
-        ARM_DBG_READ(c0, c0, 6, info.wvr0);
-	for(m = 0; m < 10000; m++);
-        ARM_DBG_READ(c0, c1, 7, info.wcr1);
-	for(m = 0; m < 10000; m++);
-        ARM_DBG_READ(c0, c0, 7, info.wcr0);
-	for(m = 0; m < 10000; m++);
-	sprintf(str,"ARM HW watchpoint register,the wvr0 is:%#x,wvr1 is:%#x,wcr0 is:%#x,wcr1 is:%#x",info.wvr0,info.wvr1,info.wcr0,info.wcr1);
-	ret = copy_to_user( (void *)arg, str, sizeof(str) );
-	#endif
-     }
-     break;
+		}
+		break;
+	case MPOOL_IOC_GETWATCHPT:
+		{
+#ifdef CONFIG_ARM
+			char str[200] = {0};
+			DrvMPool_Wcvr_Info_t info;
+			int m;
+			ARM_DBG_READ(c0, c1, 6, info.wvr1);
+			for(m = 0; m < 10000; m++);
+			ARM_DBG_READ(c0, c0, 6, info.wvr0);
+			for(m = 0; m < 10000; m++);
+			ARM_DBG_READ(c0, c1, 7, info.wcr1);
+			for(m = 0; m < 10000; m++);
+			ARM_DBG_READ(c0, c0, 7, info.wcr0);
+			for(m = 0; m < 10000; m++);
+			snprintf(str, sizeof(str), "ARM HW watchpoint register,the wvr0 is:%#x,wvr1 is:%#x,wcr0 is:%#x,wcr1 is:%#x",info.wvr0,info.wvr1,info.wcr0,info.wcr1);
+			ret = copy_to_user( (void *)arg, str, sizeof(str) );
+#endif
+		}
+		break;
 #endif //CONFIG_HAVE_HW_BREAKPOINT
 
 	case MPOOL_IOC_PA2BA:
-	{
-		MS_PHY64 bus_address = 0;
-		MS_PHY64 phy_address = 0;
-		ret= copy_from_user(&phy_address, (void __user *)arg, sizeof(MS_PHY64));
+		{
+			MS_PHY64 bus_address = 0;
+			MS_PHY64 phy_address = 0;
+			ret= copy_from_user(&phy_address, (void __user *)arg, sizeof(MS_PHY64));
 #if ARM_MIU0_BASE_ADDR != 0
-		if( (phy_address >= ARM_MIU0_BASE_ADDR) && (phy_address < ARM_MIU1_BASE_ADDR) ) // MIU0
+			if( (phy_address >= ARM_MIU0_BASE_ADDR) && (phy_address < ARM_MIU1_BASE_ADDR) ) // MIU0
 #else
-		if(phy_address < ARM_MIU1_BASE_ADDR) // MIU0
+			if(phy_address < ARM_MIU1_BASE_ADDR) // MIU0
 #endif
-			bus_address = phy_address - ARM_MIU1_BASE_ADDR + ARM_MIU0_BUS_BASE;
-		else if( (phy_address >= ARM_MIU1_BASE_ADDR) && (phy_address < ARM_MIU2_BASE_ADDR) )    // MIU1
-			bus_address = phy_address - ARM_MIU1_BASE_ADDR + ARM_MIU1_BUS_BASE;
-		else
-			bus_address = phy_address - ARM_MIU2_BASE_ADDR + ARM_MIU2_BUS_BASE;    // MIU2
+				bus_address = phy_address - ARM_MIU1_BASE_ADDR + ARM_MIU0_BUS_BASE;
+			else if( (phy_address >= ARM_MIU1_BASE_ADDR) && (phy_address < ARM_MIU2_BASE_ADDR) )    // MIU1
+				bus_address = phy_address - ARM_MIU1_BASE_ADDR + ARM_MIU1_BUS_BASE;
+			else
+				bus_address = phy_address - ARM_MIU2_BASE_ADDR + ARM_MIU2_BUS_BASE;    // MIU2
 
-        if (bus_address == 0)
-            return -EFAULT;
+			if (bus_address == 0)
+				return -EFAULT;
 
-		ret |= copy_to_user( (void *)arg, (void __user*)bus_address, sizeof(MS_PHY64));
+			ret |= copy_to_user( (void *)arg, (void __user*)bus_address, sizeof(MS_PHY64));
+		}
 		break;
-	}
 	case MPOOL_IOC_BA2PA:
-	{
-		MS_PHY64 bus_address = 0;
-		MS_PHY64 phy_address = 0;
-		ret= copy_from_user(&bus_address, (void __user *)arg, sizeof(MS_PHY64));
-		if( (bus_address >= ARM_MIU0_BUS_BASE) && (bus_address < ARM_MIU1_BUS_BASE) ) // MIU0
-			phy_address = bus_address - ARM_MIU0_BUS_BASE + ARM_MIU0_BASE_ADDR;
-		else if( (bus_address >= ARM_MIU1_BUS_BASE) && (bus_address < ARM_MIU2_BUS_BASE) ) // MIU1
-			phy_address = bus_address - ARM_MIU1_BUS_BASE + ARM_MIU1_BASE_ADDR;
-		else
-			phy_address = bus_address - ARM_MIU2_BUS_BASE + ARM_MIU2_BASE_ADDR; // MIU2
+		{
+			MS_PHY64 bus_address = 0;
+			MS_PHY64 phy_address = 0;
+			ret= copy_from_user(&bus_address, (void __user *)arg, sizeof(MS_PHY64));
+			if( (bus_address >= ARM_MIU0_BUS_BASE) && (bus_address < ARM_MIU1_BUS_BASE) ) // MIU0
+				phy_address = bus_address - ARM_MIU0_BUS_BASE + ARM_MIU0_BASE_ADDR;
+			else if( (bus_address >= ARM_MIU1_BUS_BASE) && (bus_address < ARM_MIU2_BUS_BASE) ) // MIU1
+				phy_address = bus_address - ARM_MIU1_BUS_BASE + ARM_MIU1_BASE_ADDR;
+			else
+				phy_address = bus_address - ARM_MIU2_BUS_BASE + ARM_MIU2_BASE_ADDR; // MIU2
 
-        if (phy_address == 0)
-            return -EFAULT;
+			if (phy_address == 0)
+				return -EFAULT;
 
-		ret |= copy_to_user( (void *)arg, (void __user*)phy_address, sizeof(MS_PHY64) );
+			ret |= copy_to_user( (void *)arg, (void __user*)phy_address, sizeof(MS_PHY64) );
+		}
 		break;
+
+	default:
+		return -ENOTTY;
 	}
-    default:
-        printk("Unknown ioctl command %d\n", cmd);
-        return -ENOTTY;
-    }
-    return 0;
+
+	return ret;
 }
 
 

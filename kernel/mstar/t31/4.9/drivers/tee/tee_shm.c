@@ -471,7 +471,7 @@ struct tee_shm *tee_shm_register_fd(struct tee_context *ctx, int fd)
 	ref->shm.id = -1;
 
 	ref->dmabuf = dma_buf_get(fd);
-	if (!ref->dmabuf) {
+ 	if (IS_ERR_OR_NULL(ref->dmabuf)) {
 		rc = ERR_PTR(-EINVAL);
 		goto err;
 	}
@@ -541,7 +541,9 @@ err:
 						 DMA_BIDIRECTIONAL);
 		if (ref->attach)
 			dma_buf_detach(ref->dmabuf, ref->attach);
-		if (ref->dmabuf)
+		if (IS_ERR(ref->dmabuf))
+			ERR_CAST(ref->dmabuf);
+		else if (ref->dmabuf)
 			dma_buf_put(ref->dmabuf);
 	}
 	kfree(ref);

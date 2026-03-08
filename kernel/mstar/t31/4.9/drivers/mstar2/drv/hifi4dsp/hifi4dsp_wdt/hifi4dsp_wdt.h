@@ -22,5 +22,6 @@
 extern int register_adsp_wdt_notifier(struct notifier_block *nb);
 extern int unregister_adsp_wdt_notifier(struct notifier_block *nb);
 extern void hifi4dsp_wdt_handler(void);
+extern void mtk_dsp_wdt_disable(void);
 
 #endif /*_H_HIFI4DSP_WDT_H_*/

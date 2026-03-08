@@ -66,24 +66,24 @@
 /* Use 'M' as magic number */
 #define MPOOL_IOC_MAGIC                'M'
 
-#define MPOOL_IOC_INFO           _IOWR(MPOOL_IOC_MAGIC, 0x00, DrvMPool_Info_t)
-#define MPOOL_IOC_FLUSHDCACHE    _IOR(MPOOL_IOC_MAGIC,0x01,DrvMPool_Info_t)
-#define MPOOL_IOC_GET_BLOCK_OFFSET    _IOR(MPOOL_IOC_MAGIC,0x02,unsigned int)
-#define MPOOL_IOC_SET_MAP_CACHE _IOR(MPOOL_IOC_MAGIC,0x03,unsigned int)
-#define MPOOL_IOC_TEST           _IOWR(MPOOL_IOC_MAGIC, 0x06, De_Sys_Info_t)
-#define MPOOL_IOC_SET _IOR(MPOOL_IOC_MAGIC,0x04,DrvMPool_Info_t)
-#define MPOOL_IOC_KERNEL_DETECT _IOWR(MPOOL_IOC_MAGIC,0x05,DrvMPool_Info_t)
-#define MPOOL_IOC_FLUSHDCACHE_PAVA    _IOR(MPOOL_IOC_MAGIC,0x07,DrvMPool_Flush_Info_t)
-#define MPOOL_IOC_VERSION _IOWR(MPOOL_IOC_MAGIC,0x08,unsigned int)
-#define MPOOL_IOC_FLUSHDCACHE_ALL  _IOR(MPOOL_IOC_MAGIC,0x09,DrvMPool_Flush_Info_t)
-#define MPOOL_IOC_SETWATCHPT       _IOW(MPOOL_IOC_MAGIC,0x0A,DrvMPool_Watchpt_Info_t)
-#define MPOOL_IOC_GETWATCHPT       _IOR(MPOOL_IOC_MAGIC,0x0B,char*)
-#define MPOOL_IOC_BA2PA            _IOR(MPOOL_IOC_MAGIC,0x0C,MS_PHY64)
-#define MPOOL_IOC_PA2BA            _IOR(MPOOL_IOC_MAGIC,0x0D,MS_PHY64)
+#define MPOOL_IOC_INFO                 _IOWR(MPOOL_IOC_MAGIC, 0x00, DrvMPool_Info_t)
+#define MPOOL_IOC_FLUSHDCACHE          _IOR(MPOOL_IOC_MAGIC, 0x01, DrvMPool_Info_t)
+#define MPOOL_IOC_GET_BLOCK_OFFSET     _IOR(MPOOL_IOC_MAGIC, 0x02, unsigned int)
+#define MPOOL_IOC_SET_MAP_CACHE        _IOR(MPOOL_IOC_MAGIC, 0x03, unsigned int)
+#define MPOOL_IOC_TEST                 _IOWR(MPOOL_IOC_MAGIC, 0x06, De_Sys_Info_t)
+#define MPOOL_IOC_SET                  _IOR(MPOOL_IOC_MAGIC, 0x04, DrvMPool_Info_t)
+#define MPOOL_IOC_KERNEL_DETECT        _IOWR(MPOOL_IOC_MAGIC, 0x05, DrvMPool_Info_t)
+#define MPOOL_IOC_FLUSHDCACHE_PAVA     _IOR(MPOOL_IOC_MAGIC, 0x07, DrvMPool_Flush_Info_t)
+#define MPOOL_IOC_VERSION              _IOWR(MPOOL_IOC_MAGIC, 0x08, unsigned int)
+#define MPOOL_IOC_FLUSHDCACHE_ALL      _IOR(MPOOL_IOC_MAGIC, 0x09, DrvMPool_Flush_Info_t)
+#define MPOOL_IOC_SETWATCHPT           _IOW(MPOOL_IOC_MAGIC, 0x0A, DrvMPool_Watchpt_Info_t)
+#define MPOOL_IOC_GETWATCHPT           _IOR(MPOOL_IOC_MAGIC, 0x0B, char*)
+#define MPOOL_IOC_BA2PA                _IOWR(MPOOL_IOC_MAGIC, 0x0C, MS_PHY64)
+#define MPOOL_IOC_PA2BA                _IOWR(MPOOL_IOC_MAGIC, 0x0D, MS_PHY64)
 
 #if defined(CONFIG_COMPAT)
-#define COMPAT_MPOOL_IOC_FLUSHDCACHE_PAVA    _IOR(MPOOL_IOC_MAGIC,0x07,DrvMPool_Flush_Info_t32)
-#define COMPAT_MPOOL_IOC_SETWATCHPT       _IOW(MPOOL_IOC_MAGIC,0x0A,DrvMPool_Watchpt_Info_t32)
+#define COMPAT_MPOOL_IOC_FLUSHDCACHE_PAVA _IOR(MPOOL_IOC_MAGIC, 0x07, DrvMPool_Flush_Info_t32)
+#define COMPAT_MPOOL_IOC_SETWATCHPT       _IOW(MPOOL_IOC_MAGIC, 0x0A, DrvMPool_Watchpt_Info_t32)
 #endif
 
 #endif

@@ -599,9 +599,12 @@ static void getIniFileFromIdme(char **data)
 	}
 	if (idme_get_model_name()) {
 		if (isRecoveryBoot()) {
-			if (strstr(idme_get_model_name(), CONFIG_PATH_COMPATIBLE) || strstr(idme_get_model_name(), FIRETV_ODM_PATH_COMPATIBLE)) {
+			if (strstr(idme_get_model_name(), CONFIG_PATH_COMPATIBLE)) {
 				/* Replace CONFIG_PATH_COMPATIBLE with RECOVERY_CONFIG_PATH_COMPATIBLE */
 				snprintf((char *)*data, MODEL_NAME_PATH_SIZE, "%s%s", RECOVERY_CONFIG_PATH_COMPATIBLE, idme_get_model_name() + strlen(CONFIG_PATH_COMPATIBLE));
+			} else if (strstr(idme_get_model_name(), FIRETV_ODM_PATH_COMPATIBLE)) {
+				/* Use FIRETV_ODM path directly, since it will not update during OTA */
+				snprintf((char *)*data, MODEL_NAME_PATH_SIZE, "%s", idme_get_model_name());
 			} else {
 				/* Attach RECOVERY_CONFIG_PATH_COMPATIBLE as path prefix */
 				snprintf((char *)*data, MODEL_NAME_PATH_SIZE, "%s%s", RECOVERY_CONFIG_PATH_COMPATIBLE, idme_get_model_name());

@@ -22,6 +22,7 @@ dtb-$(CONFIG_MSTAR_M7632) += \
 	m7632_eu_overlay_28_anna-bt.dtbo \
 	m7632_eu_overlay_28_anna-kt.dtbo \
 	m7632_eu_overlay_28_anna-mt.dtbo \
+	m7632_eu_overlay_28_anna-ct.dtbo \
 	m7632_eu_overlay_28_juliana.dtbo \
 	m7632_eu_an.dtb \
 

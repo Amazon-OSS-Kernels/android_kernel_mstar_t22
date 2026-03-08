@@ -79,16 +79,24 @@ extern ptrdiff_t mstar_pm_base;
 #define REG_MSPI2_BASE           (REG_RIU_BASE + REG_MSPI2_BK)
 #endif
 
+#define TXRX_32BYTE_SUPPORTED 1
+#define WB16_INDEX                     0x4
+#define WB8_INDEX                      0x3
+
+#define MSPI_READ_EXT_BUF_TMP_OFFSET       0x10
+
 #define MSPI_WRITE_BUF_OFFSET          0x40
+#define MSPI_WRITE_EXT_BUF_OFFSET      0x00
 #define MSPI_READ_BUF_OFFSET           0x44
+#define MSPI_READ_EXT_BUF_OFFSET    MSPI_READ_EXT_BUF_TMP_OFFSET
 #define MSPI_WBF_SIZE_OFFSET           0x48
 #define MSPI_RBF_SIZE_OFFSET           0x48
 
 // read/ write buffer size
 #define MSPI_RWSIZE_MASK               0xFF
 #define MSPI_RSIZE_BIT_OFFSET          0x8
-#define MAX_READ_BUF_SIZE              0x8
-#define MAX_WRITE_BUF_SIZE             0x8
+#define MAX_READ_BUF_SIZE              0x10
+#define MAX_WRITE_BUF_SIZE             0x10
 
 // CLK config 
 #define MSPI_CTRL_OFFSET               0x49

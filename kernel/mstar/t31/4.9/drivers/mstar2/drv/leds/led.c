@@ -77,9 +77,7 @@
 #include <linux/leds.h>
 #include <linux/sign_of_life.h>
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 #include <linux/metricslog.h>
-#endif
 
 static struct mutex lock;
 
@@ -125,39 +123,38 @@ typedef enum{
 } LED_CONTROL;
 
 
-#define INVALID_MBXCLASS(mbxClass)  (mbxClass >= E_MBX_CLASS_MAX)
 #define PM_MBX_TIMEOUT      5000
 #define PM_MBX_QUEUESIZE    8
 #define PM_CMDIDX_LED       0x42
 
 /* Message from SN to decide LED status */
-#define LED_PWMGPIO_INVERT_1             0xB9 /* Set LED 1 invert flag */
-#define LED_PWMGPIO_LIGHT_PERCENTAGE_1   0xBA            /* Turn on LED 1 with 0~100% */
-#define LED_PWMGPIO_LIGHT_1   0xBB            /* Turn on LED 1		*/
-#define LED_PWMGPIO_DARK_1    0xBC            /* Turn off LED 1		*/
-#define LED_PWMGPIO_BREATH_1  0xBD            /* LED 1 breath			*/
-#define LED_PWMGPIO_FLICKER_1 0xBE            /* LED 1 blink once		*/
-#define LED_PWMGPIO_FLICKER_POWERON_1 0xBF    /* LED 1 keep blinking	*/
+#define LED_PWMGPIO_INVERT_1             0xB9 /* Set LED 1 invert flag     */
+#define LED_PWMGPIO_LIGHT_PERCENTAGE_1   0xBA /* Turn on LED 1 with 0~100% */
+#define LED_PWMGPIO_LIGHT_1   		 0xBB /* Turn on LED 1		   */
+#define LED_PWMGPIO_DARK_1    		 0xBC /* Turn off LED 1		   */
+#define LED_PWMGPIO_BREATH_1  		 0xBD /* LED 1 breath		   */
+#define LED_PWMGPIO_FLICKER_1 		 0xBE /* LED 1 blink once	   */
+#define LED_PWMGPIO_FLICKER_POWERON_1 	 0xBF /* LED 1 keep blinking	   */
 
-#define LED_PWMGPIO_INVERT_2           0xC9 /* Set LED 2 invert flag */
-#define LED_PWMGPIO_LIGHT_PERCENTAGE_2 0xC8			/* Turn on LED 2 0~100% */
-#define LED_PWMGPIO_LIGHT_2 0xCB			/* Turn LED 2			*/
-#define LED_PWMGPIO_DARK_2 0xCC				/* Turn off LED 2		*/
-#define LED_PWMGPIO_BREATH_2 0xCD			/* LED 2 breath			*/
-#define LED_PWMGPIO_FLICKER_2 0xCE			/* LED 2 blink once		*/
-#define LED_PWMGPIO_FLICKER_POWERON_2 0xCF	/* LED 2 keep blinking	*/
+#define LED_PWMGPIO_INVERT_2             0xC9 /* Set LED 2 invert flag     */
+#define LED_PWMGPIO_LIGHT_PERCENTAGE_2   0xC8 /* Turn on LED 2 0~100%      */
+#define LED_PWMGPIO_LIGHT_2      	 0xCB /* Turn LED 2		   */
+#define LED_PWMGPIO_DARK_2 		 0xCC /* Turn off LED 2		   */
+#define LED_PWMGPIO_BREATH_2 		 0xCD /* LED 2 breath		   */
+#define LED_PWMGPIO_FLICKER_2 		 0xCE /* LED 2 blink once	   */
+#define LED_PWMGPIO_FLICKER_POWERON_2    0xCF /* LED 2 keep blinking	   */
 
 /* New command for abc123 */
 #define LED_PWMGPIO_LIGHT_1_abc123             0xD0
 #define LED_PWMGPIO_DARK_1_abc123              0xD1
 #define LED_PWMGPIO_FLICKER_POWERON_1_abc123   0xD2
-#define LED_PWMGPIO_LIGHT_PERCENTAGE_1_abc123    0xD3
+#define LED_PWMGPIO_LIGHT_PERCENTAGE_1_abc123  0xD3
 #define LED_PWMGPIO_LIGHT_2_abc123             0xD4
 #define LED_PWMGPIO_DARK_2_abc123              0xD5
 #define LED_PWMGPIO_FLICKER_POWERON_2_abc123   0xD6
-#define LED_PWMGPIO_LIGHT_PERCENTAGE_2_abc123    0xD7
-#define LED_PWMGPIO_FLICKER_WITH_PARA_1_abc123        0xD8
-#define LED_PWMGPIO_FLICKER_WITH_PARA_2_abc123        0xD9
+#define LED_PWMGPIO_LIGHT_PERCENTAGE_2_abc123  0xD7
+#define LED_PWMGPIO_FLICKER_WITH_PARA_1_abc123 0xD8
+#define LED_PWMGPIO_FLICKER_WITH_PARA_2_abc123 0xD9
 
 #define E_PM_CMDIDX_ACK_51ToARM 0x31  /*Need to double confirm this once get the RT_PM source code */
 
@@ -168,17 +165,9 @@ typedef enum{
 
 #define STANDBY_LED_ARG "standby_led="
 
-static int debug_enable_led;
 static int led_init_status;
 static int led_1_status;
 static int led_2_status;
-
-#define LEDS_DRV_DEBUG(format, args...) do { \
-if (debug_enable_led) {\
-	pr_err(format, ##args);\
-	} \
-} while (0)
-
 
 /*=============================================================================
  * Local Variables
@@ -189,7 +178,7 @@ static MS_BOOL bReceived;
 static MS_U16 _standby_led; /* For storing standby led from bootarg (ex: 567 = 5.67%)*/
 static MS_BOOL bled_standby_setting=true;
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
+
 
 struct metrics_info {
 	int flags;
@@ -199,9 +188,11 @@ struct metrics_info {
 };
 static struct metrics_info info;
 
-
-static void bq_log_metrics(char *msg,
-	char *metricsmsg)
+/* metrics name screenstate
+ * group FTVE-PLATFORM, uf0h909h
+ *
+ */
+static void bq_log_metrics(char *metricsmsg)
 {
 	char buf[512];
 	struct timespec curr = current_kernel_time();
@@ -209,16 +200,21 @@ static void bq_log_metrics(char *msg,
 	struct timespec diff = timespec_sub(curr,
 			info.suspend_time);
 
+#ifdef CONFIG_AMAZON_MINERVA_METRICS_LOG
 	snprintf(buf, sizeof(buf),
-		"%s:def:value=0;CT;1,elapsed=%ld;TI;1:NR",
-		metricsmsg,
-		diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
-	log_to_metrics(ANDROID_LOG_INFO, "drain_metrics", buf);
+		"%s:%s:100:%s:def:value=0;IN;1,elapsed=%ld;TI;1:NR",
+		KERNEL_METRICS_GROUP_ID, KERNEL_METRICS_SCREEN_DRAIN_SCHEMA_ID, 
+		metricsmsg, diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
+	log_to_metrics(ANDROID_LOG_INFO,"drain_metrics", buf);
+#elif defined(CONFIG_AMAZON_METRICS_LOG)
+	snprintf(buf, sizeof(buf),
+		"%s:def:value=0;IN;1,elapsed=%ld;TI;1:NR",
+		metricsmsg, diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
+	log_to_metrics(ANDROID_LOG_INFO,"drain_metrics", buf);
+#endif
 	/* Mark the suspend or resume time */
 	info.suspend_time = curr;
 }
-
-#endif
 
 /*=============================================================================
  * Local Functions
@@ -242,7 +238,7 @@ static int MDrv_LED_RecHandler(void)
 	spin_unlock_irq(&spinlock_ld);
 	printk("   rec enMbxResult:%d \n", enMbxResult);
 
-   /*check result */
+        /*check result */
 	if (enMbxResult == E_MBX_SUCCESS) {
 		if ((stMbxCommand.u8Ctrl != 0) && (stMbxCommand.u8Ctrl != 1)) {
 			enMbxResult = E_MBX_ERR_NOT_IMPLEMENTED;
@@ -287,9 +283,6 @@ static MS_S8 MDrv_LD_SetupMbx(void)
 		return enMbxResult;
 	}
 }
-
-
-
 
 MBX_Result LED_DRV_Ctrl(MS_U16 var, const unsigned int parameter, const unsigned int parameter2, const unsigned int parameter3)
 {
@@ -621,11 +614,9 @@ static struct abc123_led leds[] = {
 	{
 		.name = "tv_led",
 	},
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 	{
 		.name = "dummy_light",
 	}
-#endif
 };
 
 static ssize_t led_set(struct device *dev, struct device_attribute *attr,
@@ -718,7 +709,8 @@ static ssize_t led_set(struct device *dev, struct device_attribute *attr,
 			LED_DRV_Ctrl(LED_OFF_1_abc123, 0, parameter2,parameter3);
 			if (action == LED_BLINK_ONCE_AND_ON_1_abc123) {
 				msleep(100);
-				LED_DRV_Ctrl(LED_ON_1_abc123, 0, parameter2,parameter3);
+				if(bled_standby_setting)
+					LED_DRV_Ctrl(LED_ON_1_abc123, 0, parameter2,parameter3);
 			}
 			msleep(400);
 			goto led_set_end;
@@ -754,8 +746,6 @@ led_set_end:
 }
 static DEVICE_ATTR(tv_led_set, 0220, NULL, led_set);
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
-
 static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr,
 				  const char *buf, size_t size)
 {
@@ -771,12 +761,12 @@ static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr
 	case 0:
 		mstar_set_screen_flag();
 		pr_info("backlight is off \n");
-		bq_log_metrics("Screen on drainage", "screen_on_drain");
+		bq_log_metrics("screen_on_drain");
 		break;
 	case 1:
 		mstar_clear_screen_flag();
 		pr_info("backlight is on\n");
-		bq_log_metrics("Screen off drainage", "screen_off_drain");
+		bq_log_metrics("screen_off_drain");
 		break;
 	default:
 		break;
@@ -785,15 +775,12 @@ static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr
 	return size;
 }
 static DEVICE_ATTR(light_set, 0220, NULL, dummy_light_set);
-#endif
 
 static int mstar_leds_probe(struct platform_device *pdev)
 {
 	int i;
 	int ret, rc;
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 	info.suspend_time = current_kernel_time();
-#endif
 
 	printk("[LED]%s\n", __func__);
 	for (i = 0; i < ARRAY_SIZE(leds); i++) {
@@ -807,13 +794,13 @@ static int mstar_leds_probe(struct platform_device *pdev)
 			if (rc)
 				pr_err("[LED]device_create_file led_pattern fail!\n");
 		}
-	#if defined(CONFIG_AMAZON_METRICS_LOG)
+#if defined(CONFIG_AMAZON_METRICS_LOG) || defined (CONFIG_AMAZON_MINERVA_METRICS_LOG)
 		if (strcmp(leds[i].name, "dummy_light") == 0) {
 			rc = device_create_file(leds[i].cdev.dev, &dev_attr_light_set);
 			if (rc)
 				pr_err("[LED]device_create_file dummy_light fail!\n");
 		}
-	#endif
+#endif
 	}
 	led_init_status = 0;
 	mutex_init(&lock);
@@ -855,11 +842,11 @@ static struct platform_device mstar_leds_device = {
 static int __init mstar_leds_init(void)
 {
 	int ret;
+	char *standby_led_arg = strstr(saved_command_line, STANDBY_LED_ARG);
 
 	printk("[LED]%s\n", __func__);
-	char *standby_led_arg = strstr(saved_command_line, STANDBY_LED_ARG);
 	if (standby_led_arg) {
-		sscanf(standby_led_arg + strlen(STANDBY_LED_ARG), "%u", &_standby_led);
+		sscanf(standby_led_arg + strlen(STANDBY_LED_ARG), "%u", (unsigned int *)&_standby_led);
 	} else {
 		_standby_led = 1500;
 	}
@@ -895,5 +882,5 @@ MODULE_AUTHOR("Mstar.");
 MODULE_DESCRIPTION("LED driver for Mstar chip");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("leds-mstar");
-#endif
+#endif /* CONFIG_HAS_LED */
 

@@ -113,7 +113,7 @@
 //-------------------------------------------------------------------------------------------------
 #define MOD_SYS_DEVICE_COUNT    1
 #define MOD_SYS_NAME            "system"
-#define SYS_WARNING(fmt, args...)       printk(KERN_WARNING "[SYSMOD][%06d] " fmt, __LINE__, ## args)
+#define SYS_WARNING(fmt, args...)       printk_ratelimited(KERN_WARNING "[SYSMOD][%06d] " fmt, __LINE__, ## args)
 #if 0
 #define SYS_PRINT(fmt, args...)         printk("[SYSMOD][%06d]     " fmt, __LINE__, ## args)
 #else
@@ -206,6 +206,7 @@ extern u32 str_suspend_tm;
 extern unsigned char datapool[];
 extern int dataidx;
 extern int uidx;
+extern int MUDI_enabled;
 extern void enable_MUDI(void);
 extern void disable_MUDI(void);
 extern struct
@@ -500,7 +501,7 @@ static long Compat_mod_sys_ioctl(struct file *filp, unsigned int cmd, unsigned l
 	}
 
     default:
-        SYS_WARNING("Unknown ioctl command %d\n", cmd);
+		SYS_WARNING("Unknown ioctl command %d\n", cmd);
         return -ENOTTY;
     }
 
@@ -845,6 +846,8 @@ static int  _mod_sys_ioctl(struct inode *inode, struct file *filp, unsigned int 
 #define UART_DATA_MASK   63
 static ssize_t _mod_sys_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
+	if (!MUDI_enabled)
+		return 0;
 
     if (down_interruptible(&MUDI_dev.sem))
     {
@@ -875,7 +878,6 @@ static ssize_t _mod_sys_read(struct file *filp, char __user *buf, size_t count, 
     up(&MUDI_dev.sem);
 
     return 1;
-
 }
 
 EXPORT_SYMBOL(_mod_sys_get_dts_value);

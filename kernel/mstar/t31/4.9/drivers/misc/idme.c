@@ -31,6 +31,7 @@
 #define IDME_OF_DKB	"/idme/DKB"
 #define IDME_OF_CONFIG_NAME	"/idme/config_name"
 #define IDME_OF_KEY_LAYOUT      "/idme/key_layout"
+#define IDME_OF_OEM_DATA      "/idme/oem_data"
 
 #define IDME_OF_SENSORCAL	"/idme/sensorcal"
 
@@ -87,6 +88,24 @@ bool board_has_wan(void)
 }
 
 EXPORT_SYMBOL(board_has_wan);
+
+#define MT8570_SIG "dsp=mt8570"
+bool board_has_MT8570(void)
+{
+	struct device_node *ap;
+	int len;
+
+	ap = of_find_node_by_path(IDME_OF_OEM_DATA);
+	if (ap) {
+		const char *oem_data = of_get_property(ap, "value", &len);
+		if (len >= strlen(MT8570_SIG))
+			if (strstr(oem_data, MT8570_SIG))
+				return true;
+	}
+
+	return false;
+}
+EXPORT_SYMBOL(board_has_MT8570);
 
 unsigned int idme_get_board_type(void)
 {

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022 Amazon.com, Inc. or its affiliates.  All rights reserved.
+ *
+ */
+
 #ifndef __SINEXT_SC1233A_H
 #define __SINEXT_SC1233A_H
 

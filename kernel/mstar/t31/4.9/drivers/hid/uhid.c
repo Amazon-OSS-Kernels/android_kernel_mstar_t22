@@ -406,7 +406,7 @@ static void hid_battery_level_ind(struct hid_device *hid, unsigned int battery_l
 }
 #endif
 
-static struct hid_ll_driver uhid_hid_driver = {
+struct hid_ll_driver uhid_hid_driver = {
 	.start = uhid_hid_start,
 	.stop = uhid_hid_stop,
 	.open = uhid_hid_open,
@@ -418,6 +418,7 @@ static struct hid_ll_driver uhid_hid_driver = {
 	.battery_level_ind = hid_battery_level_ind,
 #endif
 };
+EXPORT_SYMBOL_GPL(uhid_hid_driver);
 
 #ifdef CONFIG_COMPAT
 

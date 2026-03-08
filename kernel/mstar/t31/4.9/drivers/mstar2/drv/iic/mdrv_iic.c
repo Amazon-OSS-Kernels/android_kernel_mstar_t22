@@ -1430,7 +1430,7 @@ HW_IIC_Write_End:
     if(retryCount == 0)
         printk(KERN_DEBUG "[IIC] Write to slave ID 0x%x failed. Please check slave id or port is correct \n", u8SlaveIdIIC);
 
-    udelay(60);
+	usleep_range(60, 120);
 
     IIC_DBG(printk("MDrv_IIC_Write() --> s32RetCountIIC=%d \n", s32RetCountIIC));
 
@@ -1513,7 +1513,7 @@ HW_IIC_Write_End:
     if(retryCount == 0)
         printk(KERN_DEBUG "[IIC] Write to slave ID 0x%x failed. Please check slave id or port is correct \n", u8SlaveIdIIC);
 
-    udelay(60);
+	usleep_range(60, 120);
 
     IIC_DBG(printk("MDrv_IIC_Write() --> s32RetCountIIC=%d \n", s32RetCountIIC));
     return s32RetCountIIC;
@@ -1628,7 +1628,7 @@ HW_IIC_Read_End:
     if(retryCount == 0)
         printk(KERN_DEBUG "[IIC] Read from slave ID 0x%x failed. Please check slave id or port is correct \n", u8SlaveIdIIC);
 
-    udelay(60);
+	usleep_range(60, 120);
 
     IIC_DBG(printk("MDrv_IIC_Read() --> s32RetCountIIC=%d \n", s32RetCountIIC));
 
@@ -1716,7 +1716,7 @@ HW_IIC_Read_End:
     if(retryCount == 0)
         printk(KERN_DEBUG "[IIC] Read from slave ID 0x%x failed. Please check slave id or port is correct \n", u8SlaveIdIIC);
 
-    udelay(60);
+	usleep_range(60, 120);
 
     IIC_DBG(printk("MDrv_IIC_Read() --> s32RetCountIIC=%d \n", s32RetCountIIC));
     return s32RetCountIIC;

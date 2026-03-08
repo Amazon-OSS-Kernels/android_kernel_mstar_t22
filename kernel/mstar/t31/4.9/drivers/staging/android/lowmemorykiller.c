@@ -88,6 +88,70 @@ static int lowmem_minfree_size = 4;
 #endif
 
 static unsigned long lowmem_deathpending_timeout;
+static pid_t lowmem_deathpending_tgid;
+static unsigned long lowmem_kill_timeout;
+
+/* adjust killing level based on page thrashing status and swap status in
+   addtion to file page status */
+#ifdef CONFIG_LMKD_POLICY
+/* tune-able parameters */
+static int thrashing_limit = 50;
+static int oom_score_adj_perceptible = 200;
+static int thrashing_limit_critical = -1; /* -1 means FG kill policy disabled */
+static int oom_score_adj_fg = 0;
+static int swap_low_pct_threshold = 5; /* ref: sunstone */
+
+/* avoid to renew thrashing baseline too frequently */
+static unsigned long thrashing_renew_timeout = 0;
+
+static int base_file_lru;
+static int init_ws_refault;
+static bool in_reclaim;
+static DEFINE_SPINLOCK(thrashing_lock);
+
+static inline bool is_direct_reclaim(void)
+{
+	return !current_is_kswapd();
+}
+static inline bool swap_is_low(void)
+{
+	long free_swap_pages = get_nr_swap_pages();
+
+	if (total_swap_pages == 0)
+		return false;
+
+	return free_swap_pages <
+		(total_swap_pages * swap_low_pct_threshold / 100);
+}
+static inline int swap_pages_pct(void)
+{
+	long free_swap_pages = get_nr_swap_pages();
+	if (total_swap_pages == 0)
+		return 0;
+
+	return (int)((total_swap_pages - free_swap_pages) * 100 / total_swap_pages);
+}
+
+static inline void update_thrashing_baseline(void) {
+	if (time_before_eq(jiffies, thrashing_renew_timeout)) {
+		/* do nothing */
+	}
+	else {
+		unsigned long flags = 0;
+		spin_lock_irqsave(&thrashing_lock, flags);
+
+		/* for skipping renew thrashing baseline in next 100ms */
+		thrashing_renew_timeout = jiffies + HZ / 10;
+
+		/* update thrashing baseline when lmk skips kill */
+		base_file_lru = global_node_page_state(NR_INACTIVE_FILE) +
+						global_node_page_state(NR_ACTIVE_FILE);
+		init_ws_refault = global_node_page_state(WORKINGSET_REFAULT);
+		spin_unlock_irqrestore(&thrashing_lock, flags);
+	}
+
+}
+#endif
 
 #ifdef CONFIG_AMZ_MISC
 /* ACOS_MOD_BEGIN {fwk_crash_log_collection} */
@@ -176,7 +240,9 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 #ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_MONITOR
 	unsigned long time_start = jiffies;
 #endif
-
+#ifdef CONFIG_LMKD_POLICY
+	int thrashing;
+#endif
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
 	unsigned long rem = 0;
@@ -192,7 +258,6 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 				global_node_page_state(NR_SHMEM) -
 				global_node_page_state(NR_UNEVICTABLE) -
 				total_swapcache_pages();
-
 #ifdef CONFIG_MP_Android_MSTAR_ADJUST_LOW_MEM_KILLER_POLICY
 	int active_file = global_node_page_state(NR_ACTIVE_FILE);
 	int inactive_file = global_node_page_state(NR_INACTIVE_FILE);
@@ -202,6 +267,14 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 #ifdef CONFIG_MP_Android_MSTAR_ADJUST_LOW_MEM_KILLER_POLICY
 	int total_free = 0;
 #endif
+
+	/* Avoid to have too many parallel executions from direct reclaim when
+       memory pressure is really critical. The cost of going through task
+       list to find one to kill is too high when allow parallel execution */
+	if (time_before_eq(jiffies, lowmem_kill_timeout) && (!current_is_kswapd())) {
+		lowmem_print(5, "skip kill for direct reclaim within kill timeout\n");
+		return 0;
+	}
 
 #ifdef CONFIG_CMA
 	if (gfpflags_to_migratetype(sc->gfp_mask) != MIGRATE_MOVABLE) {
@@ -275,8 +348,47 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		atomic_add((jiffies-time_start), &time_cnt_table[lowmem_scan_count].lone_time);
 		atomic_inc(&time_cnt_table[lowmem_scan_count].do_cnt);
 #endif
+
+#ifdef CONFIG_LMKD_POLICY
+		update_thrashing_baseline();
+#endif
 		return 0;
 	}
+
+#ifdef CONFIG_LMKD_POLICY
+
+	/* check thrashing when lmk starts to kill */
+	thrashing = (global_node_page_state(WORKINGSET_REFAULT) - init_ws_refault)
+				 * 100 / base_file_lru;
+
+	if ( (thrashing_limit_critical > 0) &&
+		(thrashing >= thrashing_limit_critical) &&
+		(swap_is_low() || is_direct_reclaim())) {
+		/* kill FG apps, FOS8 lmkd policy */
+		if (min_score_adj > oom_score_adj_fg) {
+			min_score_adj = oom_score_adj_fg;
+			/* use ratelimited version of print */
+			pr_info_ratelimited("Adjust min_score_adj to FG (%d) because"
+				 " thrashing pct (%d) is above threshhold (%d),"
+				 " direct reclaim (%s), swap pages pct is (%d)\n",
+				 min_score_adj, thrashing, thrashing_limit_critical,
+				  is_direct_reclaim() ? "yes" : "no", swap_pages_pct());
+		}
+	} else if ((thrashing >= thrashing_limit) &&
+		(swap_is_low() || is_direct_reclaim())) {
+		/* increase killing level to PERCEPTIBLE_APP_ADJ + 1, FOS8 lmkd policy*/
+		if (min_score_adj > oom_score_adj_perceptible) {
+			min_score_adj = oom_score_adj_perceptible + 1;
+			/* by default disable this print */
+			lowmem_print(2, "Adjust min_score_adj to PERCEPTIBLE+1 (%d) because"
+				 " thrashing pct (%d) is above threshhold (%d),"
+				 " direct reclaim (%s), swap pages pct is (%d)\n",
+				 min_score_adj, thrashing, thrashing_limit,
+				 is_direct_reclaim() ? "yes" : "no", swap_pages_pct());
+
+		}
+	}
+#endif
 
 	selected_oom_score_adj = min_score_adj;
 
@@ -292,7 +404,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		if (!p)
 			continue;
 
-		if (task_lmk_waiting(p) &&
+		if ((task_lmk_waiting(p) || (lowmem_deathpending_tgid == task_tgid_nr(p))) &&
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
 			rcu_read_unlock();
@@ -372,6 +484,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		long free = other_free * (long)(PAGE_SIZE / 1024);
 
 		task_lock(selected);
+		lowmem_deathpending_tgid = task_tgid_nr(selected);
 		send_sig(SIGKILL, selected, 0);
 		if (selected->mm)
 			task_set_lmk_waiting(selected);
@@ -388,6 +501,14 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 			     cache_size, cache_limit,
 			     min_score_adj,
 			     free);
+#ifdef CONFIG_LMKD_POLICY
+		if (thrashing > thrashing_limit)
+			lowmem_print(1, "Thrashing policy is used,"
+				 " thrashing pct (%d) is above threshhold (%d),"
+				 " direct reclaim (%s), swap pages pct is (%d)",
+				 thrashing, thrashing_limit, is_direct_reclaim() ? "yes" : "no",
+				 swap_pages_pct());
+#endif
 
 #ifdef CONFIG_MP_Android_MSTAR_ADJUST_LOW_MEM_KILLER_POLICY
 		printk("   Total_free = %ldkB, free_cma=%ldkB, Totalreserve_pages = %ldkB, MAPPED = %ldkB\n",
@@ -399,6 +520,8 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		lowmem_print(1, "other_file is %d, active_file is %d, inactive_file is %d\n\n\n", other_file, active_file, inactive_file);
 #endif
 		lowmem_deathpending_timeout = jiffies + HZ;
+		/* for skipping scan from direct reclaim in next 100ms*/
+		lowmem_kill_timeout = jiffies + HZ/10;
 		rem += selected_tasksize;
 	}
 
@@ -558,6 +681,14 @@ static const struct kparam_array __param_arr_adj = {
 	.elemsize = sizeof(lowmem_adj[0]),
 	.elem = lowmem_adj,
 };
+#endif
+
+#ifdef CONFIG_LMKD_POLICY
+module_param_named(thrashing_limit, thrashing_limit, int, 0664);
+module_param_named(thrashing_limit_critical, thrashing_limit_critical, int, 0664);
+module_param_named(oom_score_adj_fg, oom_score_adj_fg, int, 0664);
+module_param_named(oom_score_adj_perceptible, oom_score_adj_perceptible, int, 0664);
+module_param_named(swap_low_pct_threshold, swap_low_pct_threshold, int, 0664);
 #endif
 
 /*

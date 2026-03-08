@@ -112,7 +112,7 @@
 //-------------------------------------------------------------------------------------------------
 #define     MBXIO_DEBUG_ENABLE  //
 #ifdef      MBXIO_DEBUG_ENABLE
-#define     MBXIO_KDBG(_fmt, _args...)        printk(KERN_WARNING _fmt, ## _args)
+#define     MBXIO_KDBG(_fmt, _args...)        printk_ratelimited(KERN_WARNING _fmt, ## _args)
 #define     MBXIO_ASSERT(_con)   do {\
                                                             if (!(_con)) {\
                                                                 printk(KERN_CRIT "BUG at %s:%d assert(%s)\n",\
@@ -904,10 +904,6 @@ long _MDrv_MBXIO_IOCtl(struct inode *inode, struct file *filp, U32 u32Cmd, unsig
 
         default:  /* redundant, as cmd was checked against MAXNR */
 	        _MDrv_MBXIO_IOC_UnLock();
-			if ((_IOC_NR(u32Cmd) == MDRV_MBX_IOC_INIT_NR) &&
-				(_IOC_SIZE(MDRV_MBX_IOC_INIT) != _IOC_SIZE(u32Cmd)))
-				MBXIO_ASSERT(0);
-			else
                 MBXIO_KDBG(" ERROR IOCtl number %x\n ",u32Cmd);
 			return -ENOTTY;
     }

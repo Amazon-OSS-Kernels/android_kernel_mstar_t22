@@ -215,7 +215,7 @@ static int tsl2540_inc_gain(struct tsl2540_chip *chip)
 	u8 gain = 0;
 
 	if ( chip->als_inf.full_gain == 128 ){
-	    dev_info(&chip->client->dev,"%s: gain is at maxmail 128.\n", __func__);
+	    //dev_info(&chip->client->dev,"%s: gain is at maxmail 128.\n", __func__);
 	    return 1;
 	}
 	else if (chip->als_inf.full_gain == 64 ) {
@@ -243,7 +243,7 @@ static int tsl2540_dec_gain(struct tsl2540_chip *chip)
 	u8 gain = 0;
 
 	if ( chip->als_inf.full_gain == 0 ){
-	    dev_info(&chip->client->dev,"%s: gain is at minimal 0.5.\n", __func__);
+	    //dev_info(&chip->client->dev,"%s: gain is at minimal 0.5.\n", __func__);
 	    return 1;
 	}
 	else if (chip->als_inf.full_gain == 128 ) {

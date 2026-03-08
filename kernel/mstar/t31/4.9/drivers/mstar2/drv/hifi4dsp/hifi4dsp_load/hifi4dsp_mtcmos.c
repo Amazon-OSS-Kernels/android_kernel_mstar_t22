@@ -599,10 +599,24 @@ void mtcmos_init(void)
 	}
 }
 
+int spi_config_MSB(void);
+void set_DSP_DRV(void);
+void hifi4dsp_stop_dsp(void);
+void hifi4dsp_spi_set_config_mode_status(int);
+void clr_hifi4dsp_run_status(void);
+void hifi4dsp_hw_rst(void);
 void mtcmos_deinit(void)
 {
 	int i, ret;
-
+    hifi4dsp_hw_rst();
+    msleep(20);
+    spi_config_MSB();
+    hifi4dsp_spi_set_config_mode_status(0);
+    set_DSP_DRV();
+    #ifdef CONFIG_MTK_HIFI4DSP_WDT_RECOVER_SUPPORT
+    clr_hifi4dsp_run_status();
+    hifi4dsp_stop_dsp();
+    #endif
 	for (i = MT8570_POWER_DOMAIN_DSP1; i < MT8570_POWER_DOMAIN_NR; i++) {
 		if (i == MT8570_POWER_DOMAIN_INFRA)
 			continue;

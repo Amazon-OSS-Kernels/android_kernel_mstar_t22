@@ -100,8 +100,9 @@ static int dvfs_test_proc_open(struct inode *inode, struct file *file)
 
 static int dvfs_test_proc_release(struct inode *inode, struct file * file)
 {
+	if (!atomic_read(&dvfs_test_proc_is_open))
+		return -EACCES;
 
-    WARN_ON(!atomic_read(&dvfs_test_proc_is_open));
     atomic_set(&dvfs_test_proc_is_open, 0);
     return single_release(inode, file);
 }

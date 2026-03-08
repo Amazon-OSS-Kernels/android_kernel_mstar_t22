@@ -1,7 +1,7 @@
-// SC123x Initial DataSet, Socionext Inc.
-// name=??
-// hash=??
-// date=??
+/*
+ * Copyright (c) 2022 Amazon.com, Inc. or its affiliates.  All rights reserved.
+ *
+ */
 
 #ifndef _MOTION_WIDE_40DB_1100US
 #define _MOTION_WIDE_40DB_1100US

@@ -70,6 +70,9 @@ extern struct platform_device sg_mstar_emmc_device_st;
 extern void (*sleep_or_delay)(U32);
 extern u8 u8_enable_sar5;
 
+extern char *idme_get_config_name(void);
+U32 gu32_isJulianaFlag = 0;
+
 #ifdef CONFIG_MSTAR_CLKM
 #include <linux/clkm.h>
 
@@ -1361,7 +1364,11 @@ irqreturn_t eMMC_FCIE_IRQ(int irq, void *dummy)
         eMMC_debug(eMMC_DEBUG_LEVEL_ERROR,1, "SAR5 eMMC WARN: %Xh \n",
              u16_Events);
         eMMC_hw_timer_delay(2*HW_TIMER_DELAY_100ms);
-        panic("Low Voltage Reset:  SAR5 level under 0.8V\n");
+
+        /* panic only on Juliana */
+        if (gu32_isJulianaFlag == 1) {
+            panic("Low Voltage Reset:  SAR5 level under 0.8V\n");
+        }
         wake_up(&fcie_wait);
 
         return IRQ_HANDLED;
@@ -1692,6 +1699,10 @@ U32 eMMC_PlatformInit(void)
     #endif
 
     eMMC_clock_setting(FCIE_SLOWEST_CLK);
+
+    if (strstr(idme_get_config_name(), "juliana") != NULL) {
+        gu32_isJulianaFlag = 1;
+    }
 
     return eMMC_ST_SUCCESS;
 }
