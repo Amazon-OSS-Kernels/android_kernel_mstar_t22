@@ -369,8 +369,9 @@
 #define MIU_64BIT_NANYA_2G                      0x58
 #define MIU_64BIT_SAMSUNG_1_75G                 0x7e
 #define MIU_64BIT_NANYA_1_75G                   0x7c
+#define MIU_64BIT_WINBOND_2G                    0x5c
 
-#define MIU0_MAX_SUPPORT_NUM                    7
+#define MIU0_MAX_SUPPORT_NUM                    8
 #define MIU0_1ST_BONDING                        MIU_64BIT_SAMSUNG_1_5G
 #define MIU0_1ST_SIZE_Gb                        6
 #define MIU0_1ST_VENDOR                         0x1
@@ -392,8 +393,11 @@
 #define MIU0_7TH_BONDING                        MIU_64BIT_NANYA_1_75G
 #define MIU0_7TH_SIZE_Gb                        8
 #define MIU0_7TH_VENDOR                         0x4
+#define MIU0_8TH_BONDING                        MIU_64BIT_WINBOND_2G
+#define MIU0_8TH_SIZE_Gb                        8
+#define MIU0_8TH_VENDOR                         0x5
 
-#define MIU1_MAX_SUPPORT_NUM                    7
+#define MIU1_MAX_SUPPORT_NUM                    8
 #define MIU1_1ST_BONDING                        MIU_64BIT_SAMSUNG_1_5G
 #define MIU1_1ST_SIZE_Gb                        6
 #define MIU1_1ST_VENDOR                         0x1
@@ -415,6 +419,9 @@
 #define MIU1_7TH_BONDING                        MIU_64BIT_NANYA_1_75G
 #define MIU1_7TH_SIZE_Gb                        6
 #define MIU1_7TH_VENDOR                         0x4
+#define MIU1_8TH_BONDING                        MIU_64BIT_WINBOND_2G
+#define MIU1_8TH_SIZE_Gb                        8
+#define MIU1_8TH_VENDOR                         0x5
 
 //=============================================================================
 #define HDMI_HPD_INVERT                         0x00

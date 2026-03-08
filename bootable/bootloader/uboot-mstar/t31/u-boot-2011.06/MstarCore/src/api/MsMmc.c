@@ -35,6 +35,7 @@
 #include <MsDebug.h>
 #include <MsSystem.h>
 #include <MsUtility.h>
+#include <rpmb.h>
 
 #ifdef CONFIG_LZO
 #include <linux/lzo.h>
@@ -80,6 +81,7 @@ static u32 unlzo_partition_blkcnt = 0;
 static u32 do_mmc_empty_check(const void *buf, u32 len, u32 empty_flag);
 static int mmc_device_init(struct mmc **mmc);
 extern emmc_partition2_t g_mpart[EMMC_RESERVED_FOR_MAP_V2];
+extern struct rpmb_fs_partition* rpmbData;
 
 #ifndef CONFIG_GENERIC_MMC
 int do_mmc (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
@@ -3064,6 +3066,11 @@ static int cmd_write(cmd_tbl_t *cmdtp_t, int flag_t, int argc_t, char * const ar
 
             while (1) ;
 
+        } else if (sbvc_val == SBVC_ROLLBACK) {  /* Anti-rollback flash control */
+            if (rpmbData->anti_rollback_init_flag == FLAG_ANTIROLLBACK_INITIALIZED) {
+                printf("\n\n ERROR: sboot version rollback detected\n\n HALTING...\n\n");
+                while (1);
+            }
         } else if ((sbvc_val != SBVC_MATCH) && (sbvc_val != SBVC_DEV_MARK_NOT_FOUND)) {
             printf("Warning: sboot is not updated!\n");
             return 0;  // return success though

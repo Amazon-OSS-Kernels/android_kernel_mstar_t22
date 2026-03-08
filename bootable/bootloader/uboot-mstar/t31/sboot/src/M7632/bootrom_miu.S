@@ -1068,6 +1068,10 @@ _CheckDramData:
     cmp         r2, #MIU0_7TH_BONDING
     beq         MIU_WW_1_75G
 #endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU0_8TH_BONDING
+    beq         MIU_WW_2G
+#endif
 #endif
 
     ldr         r1, =(MS_BUS_RIU_ADDR + (0x152b00 << 1))
@@ -1241,6 +1245,10 @@ MIU_PREINIT_END:
     cmp         r2, #MIU0_7TH_BONDING
     beq         MIU0_7TH
 #endif
+#if (MIU0_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU0_8TH_BONDING
+    beq         MIU0_8TH
+#endif
 
     b           MIU0_INIT_END
 
@@ -1282,6 +1290,13 @@ MIU0_6TH:
 MIU0_7TH:
     PUTK        '7'
     ldr         r0, =MIU0_DDR_Init_7th
+    bl          MDrv_WriteRegTbl32
+    b           MIU0_INIT_END
+#endif
+#if (MIU0_MAX_SUPPORT_NUM >=8)
+MIU0_8TH:
+    PUTK        '8'
+    ldr         r0, =MIU0_DDR_Init_8th
     bl          MDrv_WriteRegTbl32
     b           MIU0_INIT_END
 #endif
@@ -1328,6 +1343,10 @@ MIU0_INIT_END:
     cmp         r2, #MIU1_7TH_BONDING
     beq         MIU1_7TH
 #endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU1_8TH_BONDING
+    beq         MIU1_8TH
+#endif
 
     b           MIU1_INIT_END
 
@@ -1369,6 +1388,13 @@ MIU1_6TH:
 MIU1_7TH:
     PUTK        '7'
     ldr         r0, =MIU1_DDR_Init_7th
+    bl          MDrv_WriteRegTbl32
+    b           MIU1_INIT_END
+#endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+MIU1_8TH:
+    PUTK        '8'
+    ldr         r0, =MIU1_DDR_Init_8th
     bl          MDrv_WriteRegTbl32
     b           MIU1_INIT_END
 #endif
@@ -2113,6 +2139,12 @@ Miu_Check_DramSupport:
     cmp         r0, #MIU0_7TH_BONDING
     beq         Miu_Dram_Support
 #endif
+#if (MIU0_MAX_SUPPORT_NUM >= 8)
+    ldr         DRAM_SEL, =0x8
+    ldr         DRAM_VENDOR, =MIU0_8TH_VENDOR
+    cmp         r0, #MIU0_8TH_BONDING
+    beq         Miu_Dram_Support
+#endif
 #endif
 
 Miu_Dram_NotSupport:
@@ -2165,6 +2197,10 @@ Miu_Set_Version:
     cmp         DRAM_SEL, #0x7
     beq         Miu_Size_Sel_7th
 #endif
+#if (MIU0_MAX_SUPPORT_NUM >= 8)
+    cmp         DRAM_SEL, #0x8
+    beq         Miu_Size_Sel_8th
+#endif
 #endif
 
     ldr         MIU0_SIZE_REG, =MIU0_1ST_SIZE_Gb
@@ -2206,6 +2242,12 @@ Miu_Size_Sel_6th:
 Miu_Size_Sel_7th:
     ldr         MIU0_SIZE_REG, =MIU0_7TH_SIZE_Gb
     ldr         MIU1_SIZE_REG, =MIU1_7TH_SIZE_Gb
+    b           Miu_Ver_Size_set
+#endif
+#if (MIU0_MAX_SUPPORT_NUM >= 8)
+Miu_Size_Sel_8th:
+    ldr         MIU0_SIZE_REG, =MIU0_8TH_SIZE_Gb
+    ldr         MIU1_SIZE_REG, =MIU1_8TH_SIZE_Gb
     b           Miu_Ver_Size_set
 #endif
 #endif

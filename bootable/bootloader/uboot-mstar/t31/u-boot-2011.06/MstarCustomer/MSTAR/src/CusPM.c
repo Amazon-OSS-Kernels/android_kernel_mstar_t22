@@ -356,7 +356,6 @@ static int SetPm2Sram(void)
     }
 
 #if defined(AMZN_FTVE_PM_SIGNING_ENABLED)
-    if (is_lockdown()) {
         MS_PHYADDR PM_Addr=0;
         PM_Addr = malloc(PM_SIG_START_SIZE * sizeof(unsigned char));
         snprintf(PMPath,sizeof(PMPath),"%s/PM.bin",CONFIG_PATH);
@@ -374,7 +373,6 @@ static int SetPm2Sram(void)
         }
         free(PM_Addr);
         UBOOT_DEBUG("Verify PM PASS\n");
-    }
 #endif
 
     snprintf(PMPath,sizeof(PMPath),"%s/PM.bin",CONFIG_PATH);
@@ -688,12 +686,38 @@ static int If_Boot_To_PM(void)
                     UBOOT_INFO("standby_led not set, use default setting\n");
                 }
             }
+// JULIANA series uses GPIO instead of PWM
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_JULIANA)
+            {
+                #define PROD_VAR_SIZE 32
+                char led_config[PROD_VAR_SIZE+1] = {0,};
+                idme_get_oem_data_field("led_config=", led_config, PROD_VAR_SIZE);
+
+                UBOOT_INFO("standby_led %u.%u%%\n", (percertage_x100 / 100), (percertage_x100 % 100));
+                if (percertage_x100==0)
+                {
+                    // for 2-color LED case, "led_config=1" in oem_data field
+                    if (strncmp(led_config, "1", 1) == 0)
+                    {
+                        UBOOT_INFO("Pull up GPIO1_PM/GPIO5_PM to turn off LED (red/green)\n");
+                        mdrv_gpio_set_high(PAD_GPIO1_PM);
+                        mdrv_gpio_set_high(PAD_GPIO5_PM);
+                    }
+                    else
+                    {
+                        UBOOT_INFO("Pull down GPIO1_PM to turn off LED (red)\n");
+                        mdrv_gpio_set_low(PAD_GPIO1_PM);
+                    }
+                }
+            }
+#else
             snprintf(ledCmd, (sizeof(ledCmd) - 1),"led_pwm %u %u",
                 (percertage_x100 / 100),
                 (percertage_x100 % 100));
 
             UBOOT_INFO("standby_led %u.%u%%\n", (percertage_x100 / 100), (percertage_x100 % 100));
             run_command(ledCmd, 0);
+#endif
 #if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_BRANDENBURG) || defined(CONFIG_MTK_BD_MT164B_10AT_M7632_ANNA)
             UBOOT_INFO("Pull down GPIO9_PM to shutdown PSU\n");
             mdrv_gpio_set_low(PAD_GPIO9_PM);

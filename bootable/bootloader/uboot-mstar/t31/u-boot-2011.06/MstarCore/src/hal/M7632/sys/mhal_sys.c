@@ -63,21 +63,6 @@
 #endif
 void Mhal_console_init(void)
 {
-    //config PIU_UART1 1106 bank
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x11060C<<1)) |= 0x0080; //Divisor Latch Access enable
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110600<<1)) = 0x0046; // Divisor Latch LSB = 0x5D
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110604<<1)) = 0x0000; //Divisor Latch MSB =0
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x11060C<<1)) &= 0xFF7F; //Divisor Latch Access disable
-
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110608<<1)) = 0x0000;
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110608<<1)) = 0x0007; //enable fifo & clear fifo
-
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x11060C<<1)) = 0x0000;
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x11060C<<1)) = 0x0003; //8-bit Data / 1-bit Stop / No Parity Bit
-
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110610<<1)) = 0x0000; //Set DTS/RTS to 1
-
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x110604<<1)) = 0x0000; //Disable Interrupt
     //config PIU_FUART0 1106 bank
     *(volatile MS_U32*)(MS_RIU_MAP+(0x11068C<<1)) |= 0x0080; //Divisor Latch Access enable
     *(volatile MS_U32*)(MS_RIU_MAP+(0x110680<<1)) = 0x0068; // Divisor Latch LSB = 0x5D
@@ -88,7 +73,7 @@ void Mhal_console_init(void)
     *(volatile MS_U32*)(MS_RIU_MAP+(0x110688<<1)) = 0x0007; //enable fifo & clear fifo
 
     *(volatile MS_U32*)(MS_RIU_MAP+(0x11068C<<1)) = 0x0000;
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x11068C<<1)) = 0x0003; //8-bit Data / 1-bit Stop / No Parity Bit
+//    *(volatile MS_U32*)(MS_RIU_MAP+(0x11068C<<1)) = 0x0003; //8-bit Data / 1-bit Stop / No Parity Bit
 
     *(volatile MS_U32*)(MS_RIU_MAP+(0x110690<<1)) = 0x0000; //Set DTS/RTS to 1
 
@@ -113,12 +98,12 @@ void Mhal_console_init(void)
     *(volatile MS_U32*)(MS_RIU_MAP+(0x101EA6<<1)) = 0x0064; // uart_sel0 = PIU UART0
     *(volatile MS_U32*)(MS_RIU_MAP+(0x101E04<<1)) = 0x0300; // uart_sel0 = PIU UART0
     *(volatile MS_U32*)(MS_RIU_MAP+(0x101EA8<<1)) = 0x0050; // uart_sel5 = PIU UART1
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // uart 1 clk
+//    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // uart 1 clk
 #elif defined(CONFIG_MSTAR_BD_MST098D_10AVPC_MASERATI) && defined(CONFIG_HDMITX_MSTAR_ROCKET2)
     *(volatile MS_U32*)(MS_RIU_MAP+(0x101EA6<<1)) = 0x0564; // uart_sel0 = PIU UART0
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // uart 1 clk
+//    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // uart 1 clk
 #else
-    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // PIU_UART0 / PIU_UART1--> clk 144
+//    *(volatile MS_U32*)(MS_RIU_MAP+(0x100B28<<1)) = 0x0c0c; // PIU_UART0 / PIU_UART1--> clk 144
     *(volatile MS_U32*)(MS_RIU_MAP+(0x100B2A<<1)) &= 0xFFE0; // Clean fuart clk
     *(volatile MS_U32*)(MS_RIU_MAP+(0x100B2A<<1)) |= 0x000c; // Config PIU_FUART--> clk 144
     *(volatile MS_U32*)(MS_RIU_MAP+(0x101EA6<<1)) = 0x0654;

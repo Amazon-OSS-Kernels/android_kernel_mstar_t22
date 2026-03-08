@@ -57,8 +57,8 @@
 
 #if (ENABLE_MTK_BD_MT164B_10AT_M7632 == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_DUCKIE == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_BRANDENBURG == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_SKIPPER == 1)  || (ENABLE_MTK_BD_MT164B_10AT_M7632_ANNA == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_ABC == 1)|| (ENABLE_MTK_BD_MT164B_10AT_M7632_HAILEY == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_JULIANA == 1) || (ENABLE_MTK_BD_MT164B_10AT_M7632_SHELLY == 1)
 
-const short MiuBoardType[] = {'0', '1', '-', '2', 'L', '-', 'S', 'M', '-', '1', '1', '-', '\0'};
-const short MiuDate[] = {'2', '0', '2', '0', '1', '2', '0', '8', '\n', '\r', '\0'};
+const short MiuBoardType[] = {'0', '1', '-', '2', 'L', '-', 'S', 'M', '-', '1', '2', '-', '\0'};
+const short MiuDate[] = {'2', '0', '2', '2', '1', '1', '3', '0', '\n', '\r', '\0'};
 
 #if !defined(CONFIG_MIU0_DRAM_NONE)
 const MS_REG_INIT MIU0_DDR_PreInit[] =
@@ -419,6 +419,77 @@ const MS_REG_INIT MIU0_DDR_Init_7th[] =
     _RV32_2(0x1515e6, 0x0000),
     _RV32_2(0x110d74, 0x0505),
     _RV32_2(0x110d76, 0x0505),
+    _RV32_2(0x110d3e, 0x0007),
+#else
+    #error "Invalid DRAM Setting"
+#endif
+
+#elif defined(CONFIG_MIU0_8X_MODE)
+    #error "Not support DRAM 8X mode "
+#else
+    #error "Invalid DRAM Setting"
+#endif
+
+    _END_OF_TBL32_,
+    MIU_VER
+};
+
+const MS_REG_INIT MIU0_DDR_Init_8th[] =
+{
+#if defined(CONFIG_MIU0_4X_MODE)
+#if defined(CONFIG_MIU0_DDR3_2133)
+    _RV32_2(0x151508, 0x0100),
+    _RV32_2(0x151514, 0x0909),
+    _RV32_2(0x151516, 0x0a09),
+    _RV32_2(0x151520, 0x0809),
+    _RV32_2(0x151522, 0x0909),
+    _RV32_2(0x151524, 0x0909),
+    _RV32_2(0x151526, 0x0809),
+    _RV32_2(0x151528, 0x0909),
+    _RV32_2(0x15152a, 0x0909),
+    _RV32_2(0x15152c, 0x0909),
+    _RV32_2(0x15152e, 0x0909),
+    _RV32_2(0x151530, 0x0909),
+    _RV32_2(0x151532, 0x0909),
+    _RV32_2(0x151534, 0x0909),
+    _RV32_2(0x151536, 0x0909),
+    _RV32_2(0x15153a, 0x0a0a),
+    _RV32_2(0x15153c, 0x0b0b),
+    _RV32_2(0x15153e, 0x0b0b),
+    _RV32_2(0x151560, 0x0808),
+    _RV32_2(0x151562, 0x0707),
+    _RV32_2(0x151580, 0x0202),
+    _RV32_2(0x151582, 0x0303),
+    _RV32_2(0x151586, 0x0100),
+    _RV32_2(0x151588, 0x0001),
+    _RV32_2(0x15158a, 0x0000),
+    _RV32_2(0x15158c, 0x0000),
+    _RV32_2(0x15158e, 0x0000),
+    _RV32_2(0x151590, 0x0505),
+    _RV32_2(0x151592, 0x0506),
+    _RV32_2(0x151594, 0x0101),
+    _RV32_2(0x151596, 0x0100),
+    _RV32_2(0x151598, 0x0201),
+    _RV32_2(0x15159a, 0x0000),
+    _RV32_2(0x15159c, 0x0200),
+    _RV32_2(0x15159e, 0x0302),
+    _RV32_2(0x110d94, 0x2201),
+    _RV32_2(0x110d96, 0x2303),
+    _RV32_2(0x110da4, 0x0103),
+    _RV32_2(0x110da6, 0x0106),
+    _RV32_2(0x1515e4, 0x0000),
+    _RV32_2(0x1515e6, 0x0011),
+    _RV32_2(0x1515a2, 0x1616),
+    _RV32_2(0x1515a4, 0x1616),
+    _RV32_2(0x1515a6, 0x1616),
+    _RV32_2(0x1515a8, 0x1616),
+    _RV32_2(0x1515ac, 0x1616),
+    _RV32_2(0x1515ae, 0x1616),
+    _RV32_2(0x1515b0, 0x1616),
+    _RV32_2(0x1515b2, 0x1616),
+    _RV32_2(0x110d74, 0x0505),
+    _RV32_2(0x110d76, 0x0505),
+    _RV32_2(0x110d1a, 0x8022),
     _RV32_2(0x110d3e, 0x0007),
 #else
     #error "Invalid DRAM Setting"
@@ -826,6 +897,78 @@ const MS_REG_INIT MIU1_DDR_Init_7th[] =
     _RV32_2(0x1616a6, 0x0103),
     _RV32_2(0x1516a2, 0x1212),
     _RV32_2(0x1516ac, 0x1212),
+    _RV32_2(0x161674, 0x0505),
+    _RV32_2(0x161676, 0x0505),
+    _RV32_2(0x16163e, 0x0007),
+#else
+    #error "Invalid DRAM Setting"
+#endif
+
+#elif defined(CONFIG_MIU1_8X_MODE)
+    #error "Not support DRAM 8X mode "
+#else
+    #error "Invalid DRAM Setting"
+#endif
+
+    _END_OF_TBL32_,
+    MIU_VER
+};
+
+const MS_REG_INIT MIU1_DDR_Init_8th[] =
+{
+#if defined(CONFIG_MIU1_4X_MODE)
+#if defined(CONFIG_MIU1_DDR3_2133)
+    _RV32_2(0x100604, 0x0055),
+    _RV32_2(0x152c20, 0x3103),
+    _RV32_2(0x151604, 0x0000),
+    _RV32_2(0x151608, 0x0000),
+    _RV32_2(0x151614, 0x0909),
+    _RV32_2(0x151616, 0x0909),
+    _RV32_2(0x151620, 0x0808),
+    _RV32_2(0x151622, 0x0909),
+    _RV32_2(0x151624, 0x0909),
+    _RV32_2(0x151626, 0x0909),
+    _RV32_2(0x151628, 0x0909),
+    _RV32_2(0x15162a, 0x0909),
+    _RV32_2(0x15162c, 0x0909),
+    _RV32_2(0x15162e, 0x0909),
+    _RV32_2(0x151630, 0x0909),
+    _RV32_2(0x151632, 0x0909),
+    _RV32_2(0x151634, 0x0808),
+    _RV32_2(0x151636, 0x0808),
+    _RV32_2(0x151638, 0x0a0a),
+    _RV32_2(0x15163e, 0x090a),
+    _RV32_2(0x151660, 0x0808),
+    _RV32_2(0x151662, 0x0808),
+    _RV32_2(0x151680, 0x0304),
+    _RV32_2(0x151682, 0x0203),
+    _RV32_2(0x151684, 0x0001),
+    _RV32_2(0x151688, 0x0001),
+    _RV32_2(0x15168a, 0x0202),
+    _RV32_2(0x15168c, 0x0300),
+    _RV32_2(0x15168e, 0x0002),
+    _RV32_2(0x151690, 0x0402),
+    _RV32_2(0x151692, 0x0203),
+    _RV32_2(0x151694, 0x0100),
+    _RV32_2(0x151696, 0x0001),
+    _RV32_2(0x151698, 0x0200),
+    _RV32_2(0x15169a, 0x0301),
+    _RV32_2(0x15169c, 0x0301),
+    _RV32_2(0x15169e, 0x0302),
+    _RV32_2(0x161694, 0x2121),
+    _RV32_2(0x161696, 0x0104),
+    _RV32_2(0x1616a4, 0x0304),
+    _RV32_2(0x1616a6, 0x2103),
+    _RV32_2(0x1516e4, 0x0000),
+    _RV32_2(0x1516e6, 0x0011),
+    _RV32_2(0x1516a2, 0x1819),
+    _RV32_2(0x1516a4, 0x1616),
+    _RV32_2(0x1516a6, 0x1616),
+    _RV32_2(0x1516a8, 0x1616),
+    _RV32_2(0x1516ac, 0x1819),
+    _RV32_2(0x1516ae, 0x1616),
+    _RV32_2(0x1516b0, 0x1616),
+    _RV32_2(0x1516b2, 0x1616),
     _RV32_2(0x161674, 0x0505),
     _RV32_2(0x161676, 0x0505),
     _RV32_2(0x16163e, 0x0007),

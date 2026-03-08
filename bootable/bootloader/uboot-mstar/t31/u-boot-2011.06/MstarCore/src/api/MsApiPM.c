@@ -118,7 +118,6 @@ int do_run_time_pm( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
     UBOOT_DEBUG("=================================================\n");
 
 #if defined(AMZN_FTVE_RTPM_SIGNING_ENABLED)
-    if (is_lockdown()) {
         RT_PM_Addr = malloc(RTPM_SIG_START_SIZE * sizeof(unsigned char));
         snprintf(cmd, sizeof(cmd)-1, "mmc read.p 0x%08lX RTPM 0x10100", (unsigned long)RT_PM_Addr);
 
@@ -137,7 +136,6 @@ int do_run_time_pm( cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
         }
         free(RT_PM_Addr);
         UBOOT_DEBUG("Verify RTPM PASS\n");
-    }
 #endif
 
 #if defined(CONFIG_SECURITY_BOOT) && (ENABLE_STB_BOOT)

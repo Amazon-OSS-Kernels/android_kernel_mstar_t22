@@ -311,6 +311,10 @@ _CheckDramData:
     cmp         r2, #MIU0_7TH_BONDING
     beq         MIU_WW_1_75G_STR
 #endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU0_8TH_BONDING
+    beq         MIU_WW_2G_STR
+#endif
 #endif
 
     ldr         r1, =(MS_BUS_RIU_ADDR + (0x152b00 << 1))
@@ -478,6 +482,10 @@ MIU_PREINIT_END_STR:
     cmp         r2, #MIU0_7TH_BONDING
     beq         MIU0_7TH_STR
 #endif
+#if (MIU0_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU0_8TH_BONDING
+    beq         MIU0_8TH_STR
+#endif
 
     b           MIU0_INIT_END_STR
 
@@ -513,6 +521,12 @@ MIU0_6TH_STR:
 #if (MIU0_MAX_SUPPORT_NUM >=7)
 MIU0_7TH_STR:
     ldr         r0, =MIU0_DDR_Init_Str_7th
+    bl          MDrv_WriteRegTbl32
+    b           MIU0_INIT_END_STR
+#endif
+#if (MIU0_MAX_SUPPORT_NUM >=8)
+MIU0_8TH_STR:
+    ldr         r0, =MIU0_DDR_Init_Str_8th
     bl          MDrv_WriteRegTbl32
     b           MIU0_INIT_END_STR
 #endif
@@ -558,6 +572,10 @@ MIU0_INIT_END_STR:
     cmp         r2, #MIU1_7TH_BONDING
     beq         MIU1_7TH_STR
 #endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+    cmp         r2, #MIU1_8TH_BONDING
+    beq         MIU1_8TH_STR
+#endif
 
     b           MIU1_INIT_END_STR
 
@@ -593,6 +611,12 @@ MIU1_6TH_STR:
 #if (MIU1_MAX_SUPPORT_NUM >=7)
 MIU1_7TH_STR:
     ldr         r0, =MIU1_DDR_Init_Str_7th
+    bl          MDrv_WriteRegTbl32
+    b           MIU1_INIT_END_STR
+#endif
+#if (MIU1_MAX_SUPPORT_NUM >=8)
+MIU1_8TH_STR:
+    ldr         r0, =MIU1_DDR_Init_Str_8th
     bl          MDrv_WriteRegTbl32
     b           MIU1_INIT_END_STR
 #endif

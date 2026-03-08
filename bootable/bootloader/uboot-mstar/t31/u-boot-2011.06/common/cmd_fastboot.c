@@ -14,6 +14,7 @@
 #include <linux/ctype.h>
 #include <download_command.h>
 #include <cmd_fastboot.h>
+#include <rpmb.h>
 
 #if defined(CONFIG_ANDROID_AVB_ENABLE)
 #include "avb_ops_uboot.h"
@@ -156,6 +157,7 @@ U_BOOT_CMD(
 );
 
 extern int amzn_device_is_unlocked(void);
+extern struct rpmb_fs_partition* rpmbData;
 
 #ifdef CONFIG_ANDROID_SUPPORT_AB_UPDATE
 int cb_setActive(const char *data, unsigned int data_length);
@@ -2148,6 +2150,16 @@ static void cmd_getvar(char *buffer, unsigned buffer_len)
             }
         }
 #endif //UFBL_FEATURE_ONETIME_UNLOCK
+        else if (!strcmp_l1("rpmb_version_info", buffer))
+        {
+	    if (rpmbData->anti_rollback_init_flag != FLAG_ANTIROLLBACK_INITIALIZED)
+	       fb_set_resp(kStatusError, "Anti-rollback not enabled");
+	    else {
+	       snprintf(fb_status.message, FASTBOOT_RESPONSE_LEN, "%x:%x:%x:%x:%x:%x",
+		       rpmbData->uboot_version, rpmbData->hash1_version, rpmbData->teeloader_version,
+		       rpmbData->reeloader_version, rpmbData->optee_version, rpmbData->armfw_version);
+	    }
+        }
         else
         {
             fb_set_resp(kStatusError, "Variable not implemented");

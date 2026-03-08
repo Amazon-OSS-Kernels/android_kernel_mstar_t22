@@ -74,12 +74,12 @@
 #include "idme_default_table_sophia.h"
 #endif
 
-#if defined(UFBL_PROJ_ABC)
-/* ABC already in mass production, not change */
-#include "idme_default_table_ABC.h"
-#elif defined(UFBL_PROJ_ABC)
+#if defined(UFBL_PROJ_DUCKIE)
+/* DUCKIE already in mass production, not change */
+#include "idme_default_table_duckie.h"
+#elif defined(UFBL_PROJ_BRANDENBURG)
 /* BRANDENBUG will do PVT soon, not change */
-#include "idme_default_table_ABC.h"
+#include "idme_default_table_brandenburg.h"
 #elif defined(UFBL_PLAT_MTK_T31)
 #include "idme_default_table_mtk_t31.h"
 #elif defined(UFBL_PLAT_MTK_MT9022)

@@ -108,6 +108,7 @@ extern int ufs_init(void);
 
 //#define DYNAMIC_RELOCATE_BIST 1
 
+struct rpmb_fs_partition* rpmbData;
 
 /************************************************************************
  * Coloured LED functionality
@@ -1062,7 +1063,7 @@ void board_init_r (gd_t *id, ulong dest_addr)
 
     //uboot_version offset in rpmb partion (blk0): 96th byte
     //the toltal length of the uboot_version is 4 bytes
-    struct rpmb_fs_partition* rpmbData = (struct rpmb_fs_partition*)data;
+    rpmbData = (struct rpmb_fs_partition*)data;
     if (rpmbData->anti_rollback_init_flag == FLAG_ANTIROLLBACK_INITIALIZED)
     {
         printf("Read uboot_version from RPMB = %x\n", rpmbData->uboot_version);

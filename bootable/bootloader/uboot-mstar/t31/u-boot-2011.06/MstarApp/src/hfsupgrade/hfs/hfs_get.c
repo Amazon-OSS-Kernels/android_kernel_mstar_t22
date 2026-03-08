@@ -246,7 +246,7 @@ static void hfs_get_response_process_header(void *data, int len)
     if ((find = strstr(header, HTTP_HEADER_NEWLINE)) != NULL && strstr(header, HTTP_RESPONSE_CODE_OK) == NULL)
     {
         char code[4] = {0};
-        sscanf(header, "HTTP/%*s %s", &code);
+        sscanf(header, "HTTP/%*s %3s", &code);
         printf("\n*** Warning: HTTP Response Code:%s", code);
 
         char message[64] = {0};
