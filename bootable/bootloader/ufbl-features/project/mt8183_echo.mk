@@ -1,0 +1,40 @@
+LOCAL_DIR := $(GET_LOCAL_DIR)
+
+# List of features for this product
+#FEATURE_FASTBOOT_EXTENSIONS := true
+FEATURE_IDME := true
+FEATURE_BCB := false
+FEATURE_FOS_FLAGS := true
+FEATURE_COMMON_OPENSSL := false
+FEATURE_LIBTOMCRYPT := true
+FEATURE_LIBTOMMATH := true
+FEATURE_SECURE_BOOT := true
+FEATURE_UNLOCK := false
+FEATURE_FASTBOOT_LOCKDOWN := false
+FEATURE_LIFE_CYCLE_REASONS := false
+FEATURE_LK_RAMDUMP := true
+
+# This is required for fastboot extensions
+DEFINES += UFBL_PLATFORM_MTK
+DEFINES += UFBL_PROJ_MT8183_ECHO
+
+FEATURE_PLATFORM_IMPL_MTK := true
+FEATURE_PLATFORM_IMPL_MTK_TARGET_DEVICE := true
+FEATURE_PLATFORM_IMPL_MTK_PRODUCT_OVERRIDE := $(TARGET_PRODUCT)
+FEATURE_PLATFORM_IMPL_MTK_UNLOCK := false
+
+# lock/unlock feature.
+FEATURE_UNLOCK := true
+FEATURE_PLATFORM_IMPL_MTK_UNLOCK := true
+FEATURE_FASTBOOT_LOCKDOWN := true
+
+# onetime unlock feature.
+FEATURE_ONETIME_UNLOCK := true
+
+ifneq ($(TARGET_BUILD_VARIANT),user)
+DEFINES += IDME_UPDATE_TABLE=1
+endif
+
+# After defining list of features, include
+# ufbl common definitions
+include $(LOCAL_DIR)/ufbl_common.mk
