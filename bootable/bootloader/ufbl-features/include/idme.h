@@ -1,6 +1,7 @@
 /*
-  * Copyright (C) 2015 - 2023 Amazon.com Inc. or its affiliates.  All Rights Reserved.
-*/
+ * Copyright (C) 2011-2024 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+ *
+ */
 #ifdef SUPPORT_UBOOT
 #ifndef UFBL_PLATFORM_AML
 #include <common.h>
@@ -101,6 +102,7 @@ int do_idme(int flag, int argc, char * const argv[]);
 #define IDME_MAX_NAME_LEN 16
 #define IDME_MAX_IDME_ITEM_SIZE CONFIG_IDME_SIZE
 #define IDME_MAX_PRINT_SIZE 40
+#define IDME_VERSION_LEN	4
 #if !defined(IDME_MAX_DT_PRINT_SIZE)
 #define IDME_MAX_DT_PRINT_SIZE 1024
 #endif
@@ -219,14 +221,14 @@ struct item_t {
 
 struct idme_t {
 	char magic[8];
-	char version[4];
+	char version[IDME_VERSION_LEN];
 	unsigned int items_num;
 
 	unsigned char item_data[0];
 };
 
 struct idme_ver_t {
-	char version[4];
+	char version[IDME_VERSION_LEN];
 	enum version_type {
 		IDME_VER_1P2 = 0,
 		IDME_VER_2P0,

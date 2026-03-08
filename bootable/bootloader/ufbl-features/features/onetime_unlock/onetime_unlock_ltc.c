@@ -10,6 +10,10 @@
 #include "ufbl_debug.h" /* for dprintf */
 #include <tomcrypt.h>
 
+#ifndef AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN
+#define AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN (32)
+#endif
+
 /**
  * Verify one time unlock certificate's signature using root public key
  * @param cert Pointer to certificate buffer
@@ -118,8 +122,7 @@ int amzn_verify_onetime_unlock_code(const unsigned char *sig, unsigned int sig_l
     if (!amzn_verify_code_internal(code, code_len, sig, sig_len, cert->pubkey, cert->pk_len)) {
         dprintf(CRITICAL, "%s: Device is one time unlocked\n", __FUNCTION__);
         ret = TEMP_UNLOCK_SUCCESS;
-    }
-    else {
+    } else {
         dprintf(CRITICAL, "%s: Verify signed one time unlock code failed\n", __FUNCTION__);
         ret = -ERR_TEMP_UNLOCK_GENERAL_FAIL;
     }
@@ -159,9 +162,25 @@ int amzn_get_onetime_random_number(const unsigned char *entropy, size_t entropy_
         goto fortuna_error;
     }
 
-    if ((err = fortuna_add_entropy(entropy, entropy_size, &prng)) != CRYPT_OK) {
-        dprintf(CRITICAL, "Fortuna add entropy error: %s\n", error_to_string(err));
-        goto fortuna_error;
+    /* if requested entropy size is larger than fortuna_add_entropy allows (currently 32) */
+    if(entropy_size > AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN) {
+        for(int chuck_offset = 0; chuck_offset < entropy_size;
+            chuck_offset += AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN) {
+            int chunk_len = AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN;
+            if(chuck_offset + AMZN_OTU_LTC_FORTUNA_MAX_ENTROPY_LEN > entropy_size) {
+                chunk_len = entropy_size - chuck_offset;
+            }
+
+            if ((err = fortuna_add_entropy(&entropy[chuck_offset], chunk_len, &prng)) != CRYPT_OK) {
+                dprintf(CRITICAL, "Fortuna add entropy chunks error: %s\n", error_to_string(err));
+                goto fortuna_error;
+            }
+        }
+    } else { /* requested entropy size is less than or equals to 32 */
+        if ((err = fortuna_add_entropy(entropy, entropy_size, &prng)) != CRYPT_OK) {
+            dprintf(CRITICAL, "Fortuna add single entropy chunk error: %s\n", error_to_string(err));
+            goto fortuna_error;
+        }
     }
 
     if ((err = fortuna_ready(&prng)) != CRYPT_OK) {
