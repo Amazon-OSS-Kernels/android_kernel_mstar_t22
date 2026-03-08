@@ -335,6 +335,7 @@ MDrv_WriteRegTbl32:
 
 #define RIUBASE_PM              0x1F000000
 #define RIUBASE_NONPM           0x1F200000
+#define RIUBASE_NONPM_EXT11     0x1F220000
 #define RIUBASE_NONPM_EXT12     0x1F240000
 #define RIUBASE_NONPM_EXT15     0x1F2A0000
 
@@ -519,8 +520,15 @@ L_WHILE_LOOP:
     
 SET_RIUBASE_NONPM:
     cmp         r2, #0x10
-    bne         SET_RIUBASE_NONPM_EXT12
+    bne         SET_RIUBASE_NONPM_EXT11
     ldr         GPR_RIUBASE,=RIUBASE_NONPM    
+    add         GPR_TABLE, GPR_TABLE, #2
+    b           L_WHILE_LOOP
+
+SET_RIUBASE_NONPM_EXT11:
+    cmp         r2, #0x11
+    bne         SET_RIUBASE_NONPM_EXT12
+    ldr         GPR_RIUBASE,=RIUBASE_NONPM_EXT11
     add         GPR_TABLE, GPR_TABLE, #2
     b           L_WHILE_LOOP
 
