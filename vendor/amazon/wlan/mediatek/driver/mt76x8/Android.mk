@@ -44,7 +44,7 @@ MTK_STRIP_DRIVER := y
 endif
 
 LOCAL_KERNEL_CROSS_COMPILE := $(KERNEL_CROSS_COMPILE)
-# Due to compile error when doing stripe command for Sophia/abc123/abc123/abc123, the cross_compile need to be redefined
+# Due to compile error when doing stripe command for Sophia/Greta/abc123/abc123, the cross_compile need to be redefined
 ifeq ($(TARGET_BOARD_PLATFORM), $(filter m7322 m7632 m7332 mt5889, $(TARGET_BOARD_PLATFORM)))
 LOCAL_KERNEL_CROSS_COMPILE := $(ROOTDIR)/prebuilts/gcc/linux-x86/aarch64/linaro-aarch64_linux-2014.09/bin/aarch64-linux-gnu-
 endif
