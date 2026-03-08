@@ -1,6 +1,7 @@
 /*
-  * Copyright (C) 2011-2022 Amazon.com Inc. or its affiliates.  All Rights Reserved.
-*/
+ * Copyright (C) 2011-2024 Amazon.com Inc. or its affiliates.  All Rights Reserved.
+ *
+ */
 #if defined(SUPPORT_UBOOT) || defined(SUPPORT_BOLT)
 
 #ifdef SUPPORT_UBOOT
@@ -685,6 +686,8 @@ int idme_initialize(void)
 		memcpy(pidme_data->magic, IDME_MAGIC_NUMBER, strlen(IDME_MAGIC_NUMBER));
 		memcpy(pidme_data->version, IDME_DEFAULT_VERSION, strlen(IDME_DEFAULT_VERSION));
 	}
+
+	pidme_data->version[IDME_VERSION_LEN - 1] = '\0';
 
 	for ( ; i < sizeof(idme_ver_table)/sizeof(struct idme_ver_t); i++ ) {
 		if (strncmp(pidme_data->version, idme_ver_table[i].version, strlen(idme_ver_table[i].version)) == 0) {
