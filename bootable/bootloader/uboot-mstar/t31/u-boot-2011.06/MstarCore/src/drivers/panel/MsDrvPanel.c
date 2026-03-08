@@ -102,6 +102,7 @@
 #endif
 #if (CONFIG_ENABLE_DEMURA)
 #include <MsApiDemura.h>
+#include <ms_utils.h>
 #endif
 #include <mstarstr.h>
 #include <bootlogo/MsPoolDB.h>
@@ -779,6 +780,13 @@ static void Init_TCON_Panel(void)
 {
     UBOOT_TRACE("IN\n");
     unsigned char *Dram_Addr =NULL;
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+    char    *p_str=NULL;
+    MS_BOOL bErrorStatus = FALSE;
+    MS_BOOL bSscEnable = FALSE;
+    MS_U16  u16SscSpan = 0x0;
+    MS_U16  u16SscStep = 0x0;
+#endif
 
     MApi_PNL_TCON_Init();
     if(gstDbtable.dbdata[E_DB_TCON].Size!=0)
@@ -795,14 +803,56 @@ static void Init_TCON_Panel(void)
 #if(CONFIG_ENABLE_PCID == 1)
             _parseAndDump_TCON_bin(Dram_Addr,E_APIPNL_TCON_TAB_TYPE_PCID);
 #endif
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+            UBOOT_DEBUG("%s:%d\n", __func__, __LINE__);
+            p_str = getenv("panel_ssc_span");
+            if(p_str == NULL)
+            {
+                bErrorStatus = TRUE;
+                UBOOT_DEBUG("bErrorStatus %d, %s:%d\n", bErrorStatus, __func__, __LINE__);
+            }
+            else
+            {
+                u16SscSpan = (MS_BOOL)simple_strtol(p_str, NULL, 16);
+            }
+            p_str = NULL;
+            p_str = getenv("panel_ssc_step");
+            if(p_str == NULL)
+            {
+                bErrorStatus = TRUE;
+                UBOOT_DEBUG("bErrorStatus %d, %s:%d\n", bErrorStatus, __func__, __LINE__);
+            }
+            else
+            {
+                u16SscStep = (MS_BOOL)simple_strtol(p_str, NULL, 16);
+            }
+            p_str = NULL;
+            p_str = getenv("panel_ssc_enable");
+            if((p_str != NULL) && (bErrorStatus != TRUE))
+            {
+                bSscEnable = (MS_BOOL)simple_strtol(p_str, NULL, 16);
+                UBOOT_DEBUG("panel_ssc_enable = %d   (get from getenv)\n", bSscEnable);
+                UBOOT_DEBUG("panel_ssc_span   = 0x%x (get from getenv)\n", u16SscSpan);
+                UBOOT_DEBUG("panel_ssc_step   = 0x%x (get from getenv)\n", u16SscStep);
+
+                MApi_PNL_SetSSC_Fmodulation(u16SscSpan);
+                MApi_PNL_SetSSC_Rdeviation(u16SscStep);
+                MApi_PNL_SetSSC_En(bSscEnable);
+            }
+#else
             MApi_PNL_SetSSC_Fmodulation(SSC_FMODULATION);
             MApi_PNL_SetSSC_Rdeviation(SSC_RDEVIATION);
             MApi_PNL_SetSSC_En(TRUE);
+#endif
         }
 
 #ifdef CONFIG_ENABLE_LINE_OD
             _parseAndDump_TCON_bin(Dram_Addr, E_APIPNL_TCON_TAB_TYPE_LINE_OD_REG);
             _parseAndDump_TCON_bin(Dram_Addr, E_APIPNL_TCON_TAB_TYPE_LINE_OD_TABLE);
+#endif
+
+#ifdef CONFIG_ENABLE_EVA
+            _parseAndDump_TCON_bin(Dram_Addr, E_APIPNL_TCON_TAB_TYPE_EVA_REG);
 #endif
         free((void*)Dram_Addr);
     }
@@ -1251,7 +1301,6 @@ if (misc_setting.m_u8MOD_H_MirrorMode==1 || misc_setting.m_u8VideoMirrorMode==1)
 #if defined (CONFIG_ENABLE_DEMURA)
     MApi_Demura_Init(panel_data);
 #endif
-
     UBOOT_TRACE("OK\n");
 
 #if (CONFIG_XC_FRC_VB1==1)
@@ -1346,9 +1395,8 @@ void MsDrv_PNL_BackLight_On(void)
 	{
         #if defined(CONFIG_MTK_BD_MT168B_10AT_19133_MT5870_M7332_ABC)
         PWM_init();
-        #else
-		MApi_PNL_SetBackLight(BACKLITE_INIT_SETTING);//Power on backlight
         #endif
+		MApi_PNL_SetBackLight(BACKLITE_INIT_SETTING);//Power on backlight
 	}
 	else
 	{

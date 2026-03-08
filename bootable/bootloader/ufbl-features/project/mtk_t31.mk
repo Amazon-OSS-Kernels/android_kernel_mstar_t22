@@ -19,25 +19,25 @@ UFBL_PLAT_MTK_T31 := yes
 export UFBL_PLAT_MTK_T31
 DEFINES += -DUFBL_PLAT_MTK_T31
 
-# for specific changes per project; ABC reuses abc123
-ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_ABC
-else ifeq ($(TARGET_PRODUCT), abc123)
-DEFINES += -DUFBL_PROJ_abc123
-else ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_abc123
-else ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_ABC
-else ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_ABC
+# for specific changes per project; skipper reuses brandenburg
+ifeq ($(TARGET_PRODUCT), duckie)
+DEFINES += -DUFBL_PROJ_DUCKIE
+else ifeq ($(TARGET_PRODUCT), brandenburg)
+DEFINES += -DUFBL_PROJ_BRANDENBURG
+else ifeq ($(TARGET_PRODUCT), skipper)
+DEFINES += -DUFBL_PROJ_BRANDENBURG
+else ifeq ($(TARGET_PRODUCT), anna)
+DEFINES += -DUFBL_PROJ_ANNA
 else ifeq ($(TARGET_PRODUCT), ABC)
 DEFINES += -DUFBL_PROJ_ABC
+else ifeq ($(TARGET_PRODUCT), hailey)
+DEFINES += -DUFBL_PROJ_HAILEY
+else ifeq ($(TARGET_PRODUCT), juliana)
+DEFINES += -DUFBL_PROJ_JULIANA
 else ifeq ($(TARGET_PRODUCT), ABC)
 DEFINES += -DUFBL_PROJ_ABC
-else ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_ABC
-else ifeq ($(TARGET_PRODUCT), ABC)
-DEFINES += -DUFBL_PROJ_ABC
+else ifeq ($(TARGET_PRODUCT), shelly)
+DEFINES += -DUFBL_PROJ_SHELLY
 else ifeq ($(TARGET_PRODUCT), ABC)
 DEFINES += -DUFBL_PROJ_ABC
 endif
@@ -46,11 +46,11 @@ DEFINES += -DUFBL_PLATFORM_MSTAR
 DEFINES += -DCONFIG_USERDATA_IDME_ADDR=0x0
 DEFINES += -DCONFIG_IDME_PARTITION_NUM=2
 DEFINES += -DUFBL_FEATURE_IDME
-ifeq ($(TARGET_PRODUCT), ABC)
-# can't change due to ABC already in production
+ifeq ($(TARGET_PRODUCT), duckie)
+# can't change due to DUCKIE already in production
 DEFINES += -DIDME_NUM_OF_EMMC_BLOCKS=256
 else
-# increase default value from abc123 to make sure we has the larger size
+# increase default value from brandenburg to make sure we has the larger size
 DEFINES += -DIDME_NUM_OF_EMMC_BLOCKS=512
 endif
 

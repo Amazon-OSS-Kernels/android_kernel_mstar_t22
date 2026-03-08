@@ -42,6 +42,13 @@ ifeq ($(CONFIG_INX_VB1),y)
 COBJS += ./panel_INX_vb1.o
 endif
 
+ifeq ($(CONFIG_ENABLE_DEMURA),y)
+CFLAGS		+= -I../demura
+CPPFLAGS	+= -I../demura
+CFLAGS		+= -I../demura/base
+CPPFLAGS	+= -I../demura/base
+endif
+
 all:	$(LIB) $(AOBJS)
 
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)

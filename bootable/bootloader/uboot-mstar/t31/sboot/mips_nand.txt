@@ -1,0 +1,9 @@
+# update mboot
+tftp 0x80400000 out/NANDINFO.nni
+tftp 0x80410000 out/PAIRPAGEMAP_v2.ppm
+tftp 0x80420000 out/PARTITION_v2_default.pni
+tftp 0x80430000 out/HASH0_DAT.bin
+tftp 0x80433800 out/mboot.bin
+
+ncishash 0x80400000 0x80410000 0x80420000 0x80430000 0x3800 0x80433800 $(filesize)
+% <- this is end of file symbol

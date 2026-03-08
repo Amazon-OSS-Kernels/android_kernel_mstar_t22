@@ -178,13 +178,6 @@ COBJS += ./swir/drvSWIR.o
 endif
 endif
 
-ifeq ($(CONFIG_ENABLE_DEMURA),y)
-COBJS += ./panel/MsDrvDemura.o
-COBJS += ../hal/$(CONFIG_MSTAR_CHIP_NAME)/panel/halDemura.o
-CPPFLAGS += -I./panel/
-CFLAGS += -I./panel/
-endif
-
 ifeq ($(CONFIG_INX_NOVA_VB1),y)
 COBJS += ./panel/panel_INX_NOVA_vb1.o
 endif

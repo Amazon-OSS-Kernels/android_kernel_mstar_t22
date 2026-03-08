@@ -124,6 +124,24 @@ typedef struct
     MS_U8   m_u8PixelShiftEnable;           //MsDrvPanel.c
     MS_U8   m_u8MOD_H_MirrorMode;           //MsApiGEGOP.c & MsDrvPanel.c
     MS_U8   m_u8VideoMirrorMode;            //MsApiGEGOP.c
+    /* pre-emphasis setting by customer*/
+    MS_BOOL bPESettingEnable;
+    MS_U16  u16PECurrentLevel_00;
+    MS_U16  u16PECurrentLevel_01;
+    MS_U16  u16PECurrentLevel_02;
+    MS_U16  u16PECurrentLevel_03;
+    MS_U16  u16PECurrentLevel_04;
+    MS_U16  u16PECurrentLevel_05;
+    MS_U16  u16PECurrentLevel_06;
+    MS_U16  u16PECurrentLevel_07;
+    MS_U16  u16PECurrentLevel_08;
+    MS_U16  u16PECurrentLevel_09;
+    MS_U16  u16PECurrentLevel_10;
+    MS_U16  u16PECurrentLevel_11;
+    MS_U16  u16PECurrentLevel_12;
+    MS_U16  u16PECurrentLevel_13;
+    MS_U16  u16PECurrentLevel_14;
+    MS_U16  u16PECurrentLevel_15;
 }st_sys_misc_setting;
 
 

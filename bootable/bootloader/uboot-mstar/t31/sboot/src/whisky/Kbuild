@@ -1,0 +1,34 @@
+ifeq ($(CONFIG_MSTAR_WHISKY),y)
+ifneq ($(CONFIG_MSTAR_WHISKY_BD_FPGA),y)
+  CONFIG_MSTAR_WHISKY_ASIC=y
+endif
+endif
+
+CFLAGS += -I$(srctree)/inc/whisky/board -I$(srctree)/src
+CFLAGS += -I$(srctree)/src/include
+AFLAGS += -I$(srctree)/inc/whisky/board -I$(srctree)/src
+
+extra-$(CONFIG_MSTAR_WHISKY) 		+= sboot.lds
+
+lib-$(CONFIG_MSTAR_WHISKY) 		+= reset.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= cache.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= context.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= backtrace.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= exception.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= interrupt.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= risc32.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= stack.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= vectors.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= init_whisky.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= drvGlobal.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= bootaeonsysinit.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= puts.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= printf.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= drvAeonUART.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= vsnprintf.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= snprintf.o
+#lib-$(CONFIG_MSTAR_WHISKY) 		+= sprintf.o
+#lib-$(CONFIG_MSTAR_WHISKY) 		+= device.o
+#lib-$(CONFIG_MSTAR_WHISKY) 		+= putchar.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= drvPadConf.o
+lib-$(CONFIG_MSTAR_WHISKY) 		+= setSPI.o

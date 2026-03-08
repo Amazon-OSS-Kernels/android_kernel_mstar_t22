@@ -2283,6 +2283,11 @@ choice
     help
         Selecting this item will enable LGDisplay-Demura
 
+    config DEMURA_VENDOR_CSOT_CSOT
+    bool "DEMURA_VENDOR_CSOT_CSOT"
+    help
+        Selecting this item will enable CSOT_CSOT-Demura
+
 endchoice
 endif
 

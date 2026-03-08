@@ -242,6 +242,11 @@ static char gIniBootLogo[BUFFER_SIZE];
 static bool bOdmModeEnable = 0;
 static bool bTcon_PMIC_Enable = FALSE;
 static bool bTcon_Pgamma_Enable = FALSE;
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+static bool bPnl_SSC_Enable = FALSE;
+static U16  u16Pnl_SSC_Span = 0;
+static U16  u16Pnl_SSC_Step = 0;
+#endif
 //-------------------------------------------------------------------------------------------------
 //  Extern Functions
 //-------------------------------------------------------------------------------------------------
@@ -3406,6 +3411,7 @@ int parse_pnl_ini(char *path,PanelType *p_data)
     char *script = NULL;
     char str[BUFFER_SIZE];
     U32 filesize = 0;
+
     script = loadscript(path,&filesize);
     if(script == NULL)
     {
@@ -3572,12 +3578,24 @@ int parse_pnl_ini(char *path,PanelType *p_data)
     n = Profile_GetInteger("panel", "m_dwPanelMinDCLK", 0);
     UBOOT_DEBUG("m_dwPanelMinDCLK = %ld \n",n);
     p_data->m_dwPanelMinDCLK = n;
-    n = Profile_GetInteger("panel", "m_wSpreadSpectrumStep", 0);
-    UBOOT_DEBUG("m_wSpreadSpectrumStep = %ld \n",n);
-    p_data->m_wSpreadSpectrumStep = n;
-    n = Profile_GetInteger("panel", "m_wSpreadSpectrumSpan", 0);
-    UBOOT_DEBUG("m_wSpreadSpectrumSpan = %ld \n",n);
-    p_data->m_wSpreadSpectrumSpan = n;
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+    n = Profile_GetInteger("panel", "m_bSpreadSpectrumEnable", 0);
+    UBOOT_DEBUG("m_bSpreadSpectrumEnable = %ld \n",n);
+    bPnl_SSC_Enable = (bool)n;
+#endif
+   n = Profile_GetInteger("panel", "m_wSpreadSpectrumStep", 0);
+   UBOOT_DEBUG("m_wSpreadSpectrumStep = %ld \n",n);
+   p_data->m_wSpreadSpectrumStep = n;
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+   u16Pnl_SSC_Step = n;
+#endif
+   n = Profile_GetInteger("panel", "m_wSpreadSpectrumSpan", 0);
+   UBOOT_DEBUG("m_wSpreadSpectrumSpan = %ld \n",n);
+   p_data->m_wSpreadSpectrumSpan = n;
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+   u16Pnl_SSC_Span = n;
+#endif
+
     n = Profile_GetInteger("panel", "m_ucDimmingCtl", 0);
     UBOOT_DEBUG("m_ucDimmingCtl = %ld \n",n);
     p_data->m_ucDimmingCtl = n;
@@ -3780,14 +3798,63 @@ int parse_pnl_ini(char *path,PanelType *p_data)
     setenv(V_PWM_MINPWM,str);
 
     memset(str,0,sizeof(str));
-
-
-    memset(str,0,sizeof(str));
     Profile_GetString("panel", "PNL_VB1_Control","false", str, sizearray(str));
     setenv("PNL_VB1_Control",str);
 
     memset(str,0,sizeof(str));
 #endif
+
+    n = Profile_GetBoolean("panel", "bPESettingEnable", 0); //customized pre-emphasis enable form panel ini
+    UBOOT_DEBUG("bPESettingEnable = %d\n",n);
+    gstSysMiscSetting.bPESettingEnable= n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_00", 0); //customized ch00 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_00 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_00 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_01", 0); //customized ch01 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_01 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_01 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_02", 0); //customized ch02 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_02 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_02 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_03", 0); //customized ch03 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_03 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_03 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_04", 0); //customized ch04 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_04 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_04 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_05", 0); //customized ch05 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_05 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_05 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_06", 0); //customized ch06 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_06 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_06 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_07", 0); //customized ch07 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_07 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_07 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_08", 0); //customized ch08 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_08 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_08 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_09", 0); //customized ch09 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_09 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_09 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_10", 0); //customized ch10 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_10 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_10 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_11", 0); //customized ch11 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_11 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_11 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_12", 0); //customized ch12 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_12 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_12 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_13", 0); //customized ch13 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_13 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_13 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_14", 0); //customized ch14 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_14 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_14 = n;
+    n = Profile_GetInteger("panel", "u16PECurrentLevel_15", 0); //customized ch15 pre-emphasis form panel ini
+    UBOOT_DEBUG("u16PECurrentLevel_15 = %d\n",n);
+    gstSysMiscSetting.u16PECurrentLevel_15 = n;
 
     memset(str,0,sizeof(str));
     Profile_GetString("panel", "FrcBinPath","false", str, sizearray(str));
@@ -3804,6 +3871,9 @@ int Load_PanelSetting_ToFlash(U32 u32DbtableOffset)
     PanelType pnl;
 #if defined(CONFIG_DATA_SEPARATION)
     char * pEnv=NULL;
+#endif
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+    char str[BUFFER_SIZE];
 #endif
     UBOOT_TRACE("IN\n");
     memset(&pnl,0,sizeof(pnl));
@@ -3839,7 +3909,24 @@ int Load_PanelSetting_ToFlash(U32 u32DbtableOffset)
         UBOOT_ERROR("parse_pnl_ini fail !!\n");
         return ret;
     }
-
+#if defined(CONFIG_MTK_BD_MT164B_10AT_M7632_SHELLY)
+    snprintf(str, sizeof(str), "%u", bPnl_SSC_Enable);
+    setenv("panel_ssc_enable", str);
+    UBOOT_INFO("panel_ssc_enable = %u (from panel_*.ini)\n", bPnl_SSC_Enable);
+    if((bPnl_SSC_Enable == TRUE)&&(u16Pnl_SSC_Span > 0)&&(u16Pnl_SSC_Step > 0))
+    {
+        snprintf(str, sizeof(str), "%x", u16Pnl_SSC_Span);
+        setenv("panel_ssc_span", str);
+        UBOOT_INFO("panel_ssc_span = 0x%x (from panel_*.ini)\n", u16Pnl_SSC_Span);
+        snprintf(str, sizeof(str), "%x", u16Pnl_SSC_Step);
+        setenv("panel_ssc_step", str);
+        UBOOT_INFO("panel_ssc_step = 0x%x (from panel_*.ini)\n", u16Pnl_SSC_Step);
+    }
+    else
+    {
+        UBOOT_INFO("panel ssc not enable or ssc span or ssc step value = 0\n");
+    }
+#endif
     UBOOT_DEBUG("panel para size =: 0x%08x \n",sizeof(pnl));
     ret = Load_DataToDbBuffer(u32DbtableOffset, E_DB_PANEL_PARA, (U32)&pnl);
 
@@ -4519,6 +4606,23 @@ int Load_MiscSetting_ToFlash(U32 u32DbtableOffset)
     UBOOT_DEBUG("gstSysMiscSetting.m_u8PixelShiftEnable        = 0x%x\n", gstSysMiscSetting.m_u8PixelShiftEnable);
     UBOOT_DEBUG("gstSysMiscSetting.m_u8MOD_H_MirrorMode        = 0x%x\n", gstSysMiscSetting.m_u8MOD_H_MirrorMode);
     UBOOT_DEBUG("gstSysMiscSetting.m_u8VideoMirrorMode         = 0x%x\n", gstSysMiscSetting.m_u8VideoMirrorMode);
+    UBOOT_DEBUG("gstSysMiscSetting.bPESettingEnable            = 0x%x\n", gstSysMiscSetting.bPESettingEnable);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_00        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_00);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_01        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_01);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_02        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_02);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_03        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_03);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_04        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_04);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_05        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_05);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_06        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_06);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_07        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_07);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_08        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_08);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_09        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_09);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_10        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_10);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_11        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_11);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_12        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_12);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_13        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_13);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_14        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_14);
+    UBOOT_DEBUG("gstSysMiscSetting.u16PECurrentLevel_15        = 0x%x\n", gstSysMiscSetting.u16PECurrentLevel_15);
     UBOOT_TRACE("OK\n");
     return ret;
 }
@@ -4537,9 +4641,27 @@ int Read_MiscSetting_ToFlash(st_sys_misc_setting * misc_data)
     UBOOT_DEBUG("misc_data->m_u16PanelDCLK              =: 0x%x\n", misc_data->m_u16PanelDCLK);
     UBOOT_DEBUG("misc_data->m_u32ursa_type              =: 0x%x\n", (unsigned int)misc_data->m_u32ursa_type);
     UBOOT_DEBUG("misc_data->m_Ursa_Bin_Name             =: %s\n"  , misc_data->m_Ursa_Bin_Name);
-    UBOOT_DEBUG("misc_data.m_u8PixelShiftEnable         =: 0x%x\n", misc_data->m_u8PixelShiftEnable);
+    UBOOT_DEBUG("misc_data->m_u8PixelShiftEnable        =: 0x%x\n", misc_data->m_u8PixelShiftEnable);
     UBOOT_DEBUG("misc_data->m_u8MOD_H_MirrorMode        =: 0x%x\n", misc_data->m_u8MOD_H_MirrorMode);
     UBOOT_DEBUG("misc_data->m_u8VideoMirrorMode         =: 0x%x\n", misc_data->m_u8VideoMirrorMode);
+    UBOOT_DEBUG("misc_data->bPESettingEnable            = 0x%x\n", misc_data->bPESettingEnable);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_00        = 0x%x\n", misc_data->u16PECurrentLevel_00);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_01        = 0x%x\n", misc_data->u16PECurrentLevel_01);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_02        = 0x%x\n", misc_data->u16PECurrentLevel_02);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_03        = 0x%x\n", misc_data->u16PECurrentLevel_03);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_04        = 0x%x\n", misc_data->u16PECurrentLevel_04);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_05        = 0x%x\n", misc_data->u16PECurrentLevel_05);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_06        = 0x%x\n", misc_data->u16PECurrentLevel_06);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_07        = 0x%x\n", misc_data->u16PECurrentLevel_07);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_08        = 0x%x\n", misc_data->u16PECurrentLevel_08);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_09        = 0x%x\n", misc_data->u16PECurrentLevel_09);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_10        = 0x%x\n", misc_data->u16PECurrentLevel_10);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_11        = 0x%x\n", misc_data->u16PECurrentLevel_11);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_12        = 0x%x\n", misc_data->u16PECurrentLevel_12);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_13        = 0x%x\n", misc_data->u16PECurrentLevel_13);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_14        = 0x%x\n", misc_data->u16PECurrentLevel_14);
+    UBOOT_DEBUG("misc_data->u16PECurrentLevel_15        = 0x%x\n", misc_data->u16PECurrentLevel_15);
+
     return ret;
 }
 

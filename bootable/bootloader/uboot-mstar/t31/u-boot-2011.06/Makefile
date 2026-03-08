@@ -356,6 +356,9 @@ LIBS += MstarCore/src/drivers/mmc/src/common/libmmc_common.a
 LIBS += MstarCore/src/drivers/mmc/src/api/libmmc_api.a
 LIBS += MstarCore/src/drivers/emac/libemac.a
 LIBS += MstarCore/src/drivers/keypad/libkeypad.a
+ifeq ($(CONFIG_ENABLE_DEMURA),y)
+LIBS += MstarCore/src/drivers/demura/libdemura.a
+endif
 LIBS += MstarCore/src/drivers/panel/libpanel.a
 LIBS += MstarCore/src/drivers/ursa/libursa.a
 LIBS += MstarCore/src/drivers/usb20/libusb20.a

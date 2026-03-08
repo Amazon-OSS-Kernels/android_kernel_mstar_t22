@@ -3404,6 +3404,20 @@ _MEMMAP_REGBANK_10_,
 #endif
 #endif
 
+// I2S_OUT_WCK
+#ifdef PADS_I2S_OUT_WCK
+#if (PADS_I2S_OUT_WCK != CONFIG_PADMUX_UNKNOWN)
+#define CONFIG_I2S_OUT_WCK_MODE1 ((PADS_I2S_OUT_WCK == CONFIG_PADMUX_MODE1) ? (0x00 << 4) : \
+                                  (PADS_I2S_OUT_WCK == CONFIG_PADMUX_MODE2) ? (0x01 << 4) : \
+                                  (PADS_I2S_OUT_WCK == CONFIG_PADMUX_MODE3) ? (0x02 << 4) : \
+                                  (PADS_I2S_OUT_WCK == CONFIG_PADMUX_MODE4) ? (0x03 << 4) : (0x02 << 4))
+
+_MEMMAP_REGBANK_32_,
+    _RVM1(0x2e24, CONFIG_I2S_OUT_WCK_MODE1, BITMASK(5:4)),
+_MEMMAP_REGBANK_10_,
+#endif
+#endif
+
 // LDM_SPI0
 // VSYNC_LIKE_FROM_LD
 // LDM_SPI0

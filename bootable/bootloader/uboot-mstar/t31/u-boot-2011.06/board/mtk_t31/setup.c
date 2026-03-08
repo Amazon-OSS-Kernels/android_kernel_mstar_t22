@@ -211,7 +211,9 @@ int amzn_boot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
                 char config_name_buf[32] = {0};
 
                 idme_get_var_external("config_name", config_name_buf, (sizeof(config_name_buf) - 1));
-                if (strstr(config_name_buf, "harrisa") != NULL || strstr(config_name_buf, "haileyplus_m") != NULL)
+                if ( strstr(config_name_buf, "harrisa") != NULL ||
+                     strstr(config_name_buf, "haileyplus_m") != NULL ||
+                     strstr(config_name_buf, "harissa65") != NULL )
                 {
                     UBOOT_DEBUG("harrisa or ABC model, config_name: %s\n", config_name_buf);
                     // Turn on panel before erasing MPOOL

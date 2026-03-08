@@ -723,9 +723,9 @@ int panel_dinit(void)
         return -1;
     }
 
-    //set swing level
     st_sys_misc_setting misc_data;
     Read_MiscSetting_ToFlash(&misc_data);
+    //set swing level
     u16Panel_SwingLevel = misc_data.m_u16Panel_SwingLevel;
 #if ( ENABLE_HDMITX_MSTAR_ROCKET==0)
     if(MApi_PNL_Control_Out_Swing(u16Panel_SwingLevel)!=TRUE)
@@ -734,11 +734,70 @@ int panel_dinit(void)
         return -1;
     }
 #endif
+    idme_get_var_external("config_name", config_name_buf, (sizeof(config_name_buf) - 1));
+    if ( strstr(config_name_buf, "harissa65") != NULL)
+    {
+        //set pre-emphasis
+        if(misc_data.bPESettingEnable == TRUE)
+        {
+            printf("[%s,%5d]set pre-emphasis actvie\n",__func__,__LINE__);
+            ST_PNL_MOD_PECURRENT_SETTING stPnlPElevel;
+
+            stPnlPElevel.u16Channel_Select = 1<<0;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_00;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<1;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_01;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<2;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_02;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<3;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_03;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<4;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_04;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<5;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_05;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<6;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_06;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<7;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_07;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<8;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_08;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<9;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_09;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<10;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_10;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<11;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_11;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<12;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_12;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<13;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_13;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<14;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_14;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+            stPnlPElevel.u16Channel_Select = 1<<15;
+            stPnlPElevel.u16Current_Level = misc_data.u16PECurrentLevel_15;
+            MApi_PNL_Setting(E_PNL_MOD_PECURRENT_SETTING,&stPnlPElevel,sizeof(ST_PNL_MOD_PECURRENT_SETTING));
+        }
+    }
+
     bPanleReady=TRUE;
 
-    idme_get_var_external("config_name", config_name_buf, (sizeof(config_name_buf) - 1));
-
-    if (strstr(config_name_buf, "ABC") != NULL) {
+    if (strstr(config_name_buf, "ABC") != NULL)
+    {
         if(!is_quiescent_mode()) {
             printf("[%s] Turn on backlight\n", __FUNCTION__);
             Panel_VCC_ON();

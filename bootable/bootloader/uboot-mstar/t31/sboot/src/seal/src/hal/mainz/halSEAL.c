@@ -1,0 +1,950 @@
+#include "halSEAL.h"
+#include "../../drvSEAL.h"
+
+#define __delay() ()
+
+//Non PM IP group
+#define SEAL_NON_PM_GROUP0 \
+    E_SEAL_RIU_DBG_PROT_NONPM, \
+    E_SEAL_FUART1_PROT_NONPM, \
+    E_SEAL_URDMA1_PROT_NONPM, \
+    E_SEAL_VD_MHEG5_PROT_NONPM, \
+    E_SEAL_MAU1_PROT_NONPM, \
+    E_SEAL_HIREG_PROT_NONPM, \
+    E_SEAL_POR_STATUS_PROT_NONPM, \
+    E_SEAL_INTR_CPUINT_PROT_NONPM, \
+    E_SEAL_MIU2_PROT_NONPM, \
+    E_SEAL_USB0_PROT_NONPM, \
+    E_SEAL_USB1_PROT_NONPM, \
+    E_SEAL_UPLL0_PROT_NONPM, \
+    E_SEAL_BDMA_CH0_PROT_NONPM, \
+    E_SEAL_BDMA_CH1_PROT_NONPM, \
+    E_SEAL_UART0_PROT_NONPM, \
+    E_SEAL_CLKGEN2_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP1 \
+    E_SEAL_CLKGEN0_PROT_NONPM, \
+    E_SEAL_DSCRMB_PROT_NONPM, \
+    E_SEAL_UHC1_PROT_NONPM, \
+    E_SEAL_MHEG5_PROT_NONPM, \
+    E_SEAL_INTR_CTRL1_PROT_NONPM, \
+    E_SEAL_MVD_PROT_NONPM, \
+    E_SEAL_MIU_PROT_NONPM, \
+    E_SEAL_MVOPSUB_PROT_NONPM, \
+    E_SEAL_MVOP_PROT_NONPM, \
+    E_SEAL_TSP0_PROT_NONPM, \
+    E_SEAL_TSP1_PROT_NONPM, \
+    E_SEAL_JPD_PROT_NONPM, \
+    E_SEAL_SEMAPH_PROT_NONPM, \
+    E_SEAL_MAU0_PROT_NONPM, \
+    E_SEAL_L3_AXI_PROT_NONPM, \
+    E_SEAL_INTR_CTRL_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP2 \
+    E_SEAL_HVD_PROT_NONPM, \
+    E_SEAL_TSP2_PROT_NONPM, \
+    E_SEAL_MCU_ARM_PROT_NONPM, \
+    E_SEAL_CHIP_PROT_NONPM, \
+    E_SEAL_GOP_PROT_NONPM, \
+    E_SEAL_EMAC0_PROT_NONPM, \
+    E_SEAL_EMAC1_PROT_NONPM, \
+    E_SEAL_EMAC2_PROT_NONPM, \
+    E_SEAL_EMAC3_PROT_NONPM, \
+    E_SEAL_UHC0_PROT_NONPM,  \
+    E_SEAL_ADC_ATOP_PROT_NONPM, \
+    E_SEAL_ADC_DTOP_PROT_NONPM, \
+    E_SEAL_GE0_PROT_NONPM, \
+    E_SEAL_SMART_PROT_NONPM, \
+    E_SEAL_CI_PROT_NONPM, \
+    E_SEAL_CHIPGPIO_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP3 \
+    E_SEAL_VP6_PROT_NONPM, \
+    E_SEAL_LDM_DMA0_PROT_NONPM, \
+    E_SEAL_LDM_DMA1_PROT_NONPM, \
+    E_SEAL_SC0_PROT_NONPM, \
+    E_SEAL_SC1_PROT_NONPM, \
+    E_SEAL_SC2_PROT_NONPM, \
+    E_SEAL_SC3_PROT_NONPM, \
+    E_SEAL_SC4_PROT_NONPM, \
+    E_SEAL_CLKGEN1_PROT_NONPM,  \
+    E_SEAL_MAILBOX_PROT_NONPM, \
+    E_SEAL_MIIC_PROT_NONPM, \
+    E_SEAL_PCM_PROT_NONPM, \
+    E_SEAL_VDMCU51_IF_PROT_NONPM, \
+    E_SEAL_DMDMCU51_IF_PROT_NONPM, \
+    E_SEAL_VDMCU51_1_IF_PROT_NONPM, \
+    E_SEAL_URDMA_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP4 \
+    E_SEAL_AFEC_PROT_NONPM, \
+    E_SEAL_COMB_PROT_NONPM, \
+    E_SEAL_VBI_PROT_NONPM, \
+    E_SEAL_SCM_PROT_NONPM, \
+    E_SEAL_UTMI2_PROT_NONPM, \
+    E_SEAL_PATGEN_PROT_NONPM, \
+    E_SEAL_UTMI1_PROT_NONPM, \
+    E_SEAL_UTMI_PROT_NONPM, \
+    E_SEAL_VE_0_PROT_NONPM,  \
+    E_SEAL_REG_PIU_NONPM_PROT_NONPM, \
+    E_SEAL_ADC_ATOPB_PROT_NONPM, \
+    E_SEAL_VE_1_PROT_NONPM, \
+    E_SEAL_VE_2_PROT_NONPM, \
+    E_SEAL_SC_GP1_NONPM, \
+    E_SEAL_CHIPGPIO1_NONPM, \
+    E_SEAL_MPIF_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP5 \
+    E_SEAL_GPD_PROT_NONPM, \
+    E_SEAL_UART1_PROT_NONPM, \
+    E_SEAL_FUART_PROT_NONPM, \
+    E_SEAL_GE1_PROT_NONPM, \
+    E_SEAL_GPU_NONPM,  \
+    E_SEAL_TS_SAMPLE_NONPM, \
+    E_SEAL_NR_HSD_PROT_NONPM, \
+    E_SEAL_ANA_MISC2_NONPM, \
+    E_SEAL_ANA_MISC_PROT_NONPM, \
+    E_SEAL_ANA_MISC_GMAC_PROT_NONPM, \
+    E_SEAL_MIU_ATOP_PROT_NONPM, \
+    E_SEAL_NR_PROT_NONPM, \
+    E_SEAL_DI_PROT_NONPM, \
+    E_SEAL_MFE0_PROT_NONPM, \
+    E_SEAL_MFE1_PROT_NONPM, \
+    E_SEAL_ADC_DTOPB_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP6 \
+    E_SEAL_NFIE0_PROT_NONPM, \
+    E_SEAL_NFIE1_PROT_NONPM, \
+    E_SEAL_NFIE2_PROT_NONPM, \
+    E_SEAL_VIVALDIc_PROT_NONPM, \
+    E_SEAL_VIVALDId_PROT_NONPM, \
+    E_SEAL_MIIC0_PROT_NONPM, \
+    E_SEAL_MIIC1_PROT_NONPM, \
+    E_SEAL_MIIC2_PROT_NONPM, \
+    E_SEAL_MIIC3_PROT_NONPM, \
+    E_SEAL_MOD2_PROT_NONPM, \
+    E_SEAL_CLKGEN_DMD_PROT_NONPM, \
+    E_SEAL_DEMOD_0_PROT_NONPM, \
+    E_SEAL_DEMOD_1_PROT_NONPM, \
+    E_SEAL_DEMOD_2_PROT_NONPM, \
+    E_SEAL_DEMOD_3_PROT_NONPM, \
+    E_SEAL_DEMOD_4_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP7 \
+    E_SEAL_DEMOD_5_PROT_NONPM, \
+    E_SEAL_DEMOD_6_PROT_NONPM, \
+    E_SEAL_DEMOD_7_PROT_NONPM, \
+    E_SEAL_DMD_ANA_MISC_PROT_NONPM, \
+    E_SEAL_AUR20_PROT_NONPM, \
+    E_SEAL_VIVALDI0_PROT_NONPM, \
+    E_SEAL_VIVALDI1_PROT_NONPM, \
+    E_SEAL_VIVALDI2_PROT_NONPM, \
+    E_SEAL_VIVALDI3_PROT_NONPM, \
+    E_SEAL_VIVALDI4_PROT_NONPM, \
+    E_SEAL_VIVALDI5_PROT_NONPM, \
+    E_SEAL_AU_MAU_NONPM, \
+    E_SEAL_AU_GDMA_NONPM, \
+    E_SEAL_CLKGEN_SC_FE, \
+    E_SEAL_CLKGEN_SC_BE, \
+    E_SEAL_CLKGEN_SC_GP2
+
+#define SEAL_NON_PM_GROUP8 \
+    E_SEAL_SC_GPLUS, \
+    E_SEAL_USB2_PROT_NONPM, \
+    E_SEAL_UHC2_PROT_NONPM, \
+    E_SEAL_TSO_PROT_NONPM, \
+    E_SEAL_DRM_SECURE_PROT_NONPM, \
+    E_SEAL_DSCRMB2_PROT_NONPM, \
+    E_SEAL_DSCRMB3_PROT_NONPM, \
+    E_SEAL_GPD0_PROT_NONPM, \
+    E_SEAL_GPD1_PROT_NONPM, \
+    E_SEAL_GOP0G_0_PROT_NONPM, \
+    E_SEAL_GOP0G_1_PROT_NONPM, \
+    E_SEAL_GOP0G_ST_PROT_NONPM, \
+    E_SEAL_GOP1G_0_PROT_NONPM, \
+    E_SEAL_GOP1G_1_PROT_NONPM, \
+    E_SEAL_GOP1G_ST_PROT_NONPM, \
+    E_SEAL_GOP2G_0_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP9 \
+    E_SEAL_GOP2G_1_PROT_NONPM, \
+    E_SEAL_GOP2G_ST_PROT_NONPM, \
+    E_SEAL_GOP3G_0_PROT_NONPM, \
+    E_SEAL_GOP3G_1_PROT_NONPM, \
+    E_SEAL_GOP3G_ST_PROT_NONPM, \
+    E_SEAL_GOPD_PROT_NONPM, \
+    E_SEAL_SDIO0_PROT_NONPM, \
+    E_SEAL_SPARE1_PROT_NONPM, \
+    E_SEAL_SPARE3_PROT_NONPM, \
+    E_SEAL_MIU_ARB256_PROT_NONPM, \
+    E_SEAL_TZPC_NONPM2_NONPM, \
+    E_SEAL_GOP4G_0_PROT_NONPM, \
+    E_SEAL_MIIC4_PROT_NONPM, \
+    E_SEAL_MIIC5_PROT_NONPM, \
+    E_SEAL_GOP4G_1_PROT_NONPM, \
+    E_SEAL_GOP4G_ST_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP10 \
+    E_SEAL_COMBO_PHY2_P0_PROT_NONPM, \
+    E_SEAL_SDIO1_PROT_NONPM, \
+    E_SEAL_SDIO2_PROT_NONPM, \
+    E_SEAL_SEC_R2_PROT_NONPM, \
+    E_SEAL_SEC_MAU0_PROT_NONPM, \
+    E_SEAL_DSCRMB4_PROT_NONPM, \
+    E_SEAL_MOBF_PROT_NONPM, \
+    E_SEAL_DC_SCL_PROT_NONPM, \
+    E_SEAL_JPD1_PROT_NONPM, \
+    E_SEAL_JPD2_PROT_NONPM, \
+    E_SEAL_JPD3_PROT_NONPM, \
+    E_SEAL_CMDQ_PROT_NONPM, \
+    E_SEAL_USBBC0_PROT_NONPM, \
+    E_SEAL_USBBC1_PROT_NONPM, \
+    E_SEAL_USBBC2_PROT_NONPM, \
+    E_SEAL_SECURERANGE0_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP11 \
+    E_SEAL_SECURERANGE1_PROT_NONPM, \
+    E_SEAL_TZPC_NONPM_PROT_NONPM, \
+    E_SEAL_NFIE3_PROT_NONPM, \
+    E_SEAL_DSCRMB5_PROT_NONPM, \
+    E_SEAL_TSO1_NONPM, \
+    E_SEAL_EMMC_PLL_PROT_NONPM, \
+    E_SEAL_MSC_PROT_NONPM, \
+    E_SEAL_MSC1_NONPM, \
+    E_SEAL_PATGEN_CODEC_PROT_NONPM, \
+    E_SEAL_PATGEN_VIV_PROT_NONPM, \
+    E_SEAL_PATGEN_CPU_PROT_NONPM, \
+    E_SEAL_PATGEN_GPU_PROT_NONPM, \
+    E_SEAL_PATGEN_DEMOD_PROT_NONPM, \
+    E_SEAL_PATGEN_TSP_PROT_NONPM, \
+    E_SEAL_PATGEN_DVI_PROT_NONPM, \
+    E_SEAL_PATGEN_EVD_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP12 \
+    E_SEAL_PATGEN_SC0_PROT_NONPM, \
+    E_SEAL_PATGEN_SC1_PROT_NONPM, \
+    E_SEAL_PATGEN_SC2_PROT_NONPM, \
+    E_SEAL_PAD_MUX_NONPM, \
+    E_SEAL_COMB1_PROT_NONPM, \
+    E_SEAL_COMB2_PROT_NONPM, \
+    E_SEAL_COMB3_PROT_NONPM, \
+    E_SEAL_COMB4_PROT_NONPM, \
+    E_SEAL_COMB5_PROT_NONPM, \
+    E_SEAL_MSPI0_PROT_NONPM, \
+    E_SEAL_MSPI1_PROT_NONPM, \
+    E_SEAL_MSPI_MCARD_PROT_NONPM, \
+    E_SEAL_DMD_MCU2_PROT_NONPM, \
+    E_SEAL_VIVALDI6_PROT_NONPM, \
+    E_SEAL_VIVALDI7_PROT_NONPM, \
+    E_SEAL_GMAC0_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP13 \
+    E_SEAL_GMAC1_PROT_NONPM, \
+    E_SEAL_GMAC2_PROT_NONPM, \
+    E_SEAL_GMAC3_PROT_NONPM, \
+    E_SEAL_GMAC4_PROT_NONPM, \
+    E_SEAL_PCM2_PROT_NONPM, \
+    E_SEAL_TSP3_PROT_NONPM, \
+    E_SEAL_EVD_NONPM, \
+    E_SEAL_DYN_SCL_PROT_NONPM, \
+    E_SEAL_VP9_TOP_PROT_NONPM, \
+    E_SEAL_GPU_PLL_PROT_NONPM, \
+    E_SEAL_MIU_ARB_SC_NONPM, \
+    E_SEAL_MIU_ARB2_SC_NONPM, \
+    E_SEAL_CODEC_MRQ_PROT_NONPM, \
+    E_SEAL_MIU_ARB_NONPM, \
+    E_SEAL_MIU_ATOP2_PROT_NONPM, \
+    E_SEAL_MIU_ARB2_NONPM
+
+#define SEAL_NON_PM_GROUP14 \
+    E_SEAL_GE2_NONPM, \
+    E_SEAL_GE3_NONPM, \
+    E_SEAL_AU_R2_1_NONPM, \
+    E_SEAL_AU_MAU_1_NONPM, \
+    E_SEAL_AU_GDMA_1_NONPM, \
+    E_SEAL_VD_EVD_R2_NONPM, \
+    E_SEAL_MAU_EVD_NONPM, \
+    E_SEAL_HIREG_EVD_PROT_NONPM, \
+    E_SEAL_MAU1_LV2_0_NONPM, \
+    E_SEAL_MAU1_LV2_1_NONPM, \
+    E_SEAL_MAU_EVD_LV2_0_NONPM, \
+    E_SEAL_MAU_EVD_LV2_1_NONPM, \
+    E_SEAL_SEC_MAU_LV2_0_NONPM, \
+    E_SEAL_SEC_MAU_LV2_1_NONPM, \
+    E_SEAL_TSP5_NONPM, \
+    E_SEAL_VIVALDI8_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP15 \
+    E_SEAL_VIVALDI9_PROT_NONPM, \
+    E_SEAL_VIVALDIa_0_PROT_NONPM, \
+    E_SEAL_VIVALDIa_1_PROT_NONPM, \
+    E_SEAL_VIVALDIa_2_PROT_NONPM, \
+    E_SEAL_VIVALDIa_3_PROT_NONPM, \
+    E_SEAL_VIVALDIb_0_PROT_NONPM, \
+    E_SEAL_VIVALDIb_1_PROT_NONPM, \
+    E_SEAL_VIVALDIb_2_PROT_NONPM, \
+    E_SEAL_VIVALDIb_3_PROT_NONPM , \
+    E_SEAL_COMBO_PHY0_P0_PROT_NONPM, \
+    E_SEAL_COMBO_PHY1_P0_PROT_NONPM, \
+    E_SEAL_DVI_DTOP_DUAL_P0_PROT_NONPM, \
+    E_SEAL_DVI_RSV_DUAL_P0_PROT_NONPM, \
+    E_SEAL_HDCP_DUAL_P0_PROT_NONPM, \
+    E_SEAL_HDMI_DUAL_0_PROT_NONPM, \
+    E_SEAL_HDMI2_DUAL_0_PROT_NONPM
+
+#define SEAL_NON_PM_GROUP16 \
+    E_SEAL_HDMI3_DUAL_0_PROT_NONPM, \
+    E_SEAL_HDCPKEY_PROT_NONPM, \
+    E_SEAL_COMBO_GP_TOP_PROT_NONPM, \
+    E_SEAL_SECURE_TZPC_PROT_NONPM, \
+    E_SEAL_X32_GPUAPB0_NONPM, \
+    E_SEAL_X32_GPUAPB1_NONPM, \
+    E_SEAL_X32_GPUAPB2_NONPM, \
+    E_SEAL_X32_EMAC0_NONPM, \
+    E_SEAL_X32_EMAC1_NONPM, \
+    E_SEAL_X32_EMAC2_NONPM, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP17 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP18 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP19 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP20 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP21 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP22 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+#define SEAL_NON_PM_GROUP23 \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DDI_1_PROT_NONPM, \
+    E_SEAL_DDI_0_PROT_NONPM, \
+    E_SEAL_DIP_1_PROT_NONPM, \
+    E_SEAL_DIP_0_PROT_NONPM, \
+    E_SEAL_PDW1_PROT_NONPM, \
+    E_SEAL_PDW0_PROT_NONPM, \
+    E_SEAL_DWIN1_PROT_NONPM, \
+    E_SEAL_DWIN0_PROT_NONPM, \
+    E_SEAL_DIP_PROT_NONPM
+
+//PM IP group
+#define SEAL_PM_GROUP0 \
+    E_SEAL_RIU_DBG_PROT_PM, \
+    E_SEAL_MENULOAD_PROT_PM, \
+    E_SEAL_GDMA_PROT_PM, \
+    E_SEAL_DDC_PROT_PM, \
+    E_SEAL_PM_PATGEN_PROT_PM, \
+    E_SEAL_PM_POR_PROT_PM, \
+    E_SEAL_ISP_PROT_PM, \
+    E_SEAL_FSP_PROT_PM, \
+    E_SEAL_QSPI_PROT_PM, \
+    E_SEAL_PM_SLEEP_PROT_PM, \
+    E_SEAL_PM_GPIO_PROT_PM, \
+    E_SEAL_MCU_PROT_PM, \
+    E_SEAL_PM_CEC_PROT_PM, \
+    E_SEAL_PM_RTC0_PROT_PM, \
+    E_SEAL_PM_RTC1_PROT_PM, \
+    E_SEAL_PM_SAR_PROT_PM
+
+#define SEAL_PM_GROUP1 \
+    E_SEAL_PM_AV_LINK_PROT_PM, \
+    E_SEAL_PM_RTC2_PROT_PM, \
+    E_SEAL_PM_TOP_PROT_PM, \
+    E_SEAL_EFUSE_PROT_PM, \
+    E_SEAL_IRQ_PROT_PM, \
+    E_SEAL_CACHE_PROT_PM, \
+    E_SEAL_XDMIU_PROT_PM, \
+    E_SEAL_PM_MISC_PROT_PM, \
+    E_SEAL_WDT_PROT_PM, \
+    E_SEAL_TIMER0_PROT_PM, \
+    E_SEAL_TIMER1_PROT_PM, \
+    E_SEAL_TIMER2_PROT_PM, \
+    E_SEAL_WFIMON_PROT_PM, \
+    E_SEAL_ALBANY0_PROT_PM, \
+    E_SEAL_ALBANY1_PROT_PM, \
+    E_SEAL_ALBANY2_PROT_PM
+
+#define SEAL_PM_GROUP2 \
+    E_SEAL_DID_KEY_PROT_PM, \
+    E_SEAL_TZPC_PROT_PM, \
+    E_SEAL_STR_PROT_PM, \
+    E_SEAL_ONEWAY_PROT_PM, \
+    E_SEAL_REG_PIU_MISC_0_PROT_PM, \
+    E_SEAL_IR_PROT_PM, \
+    E_SEAL_PM_SPARE0_PROT_PM, \
+    E_SEAL_PM_SPARE1_PROT_PM, \
+    E_SEAL_SCDC_0_PROT_PM, \
+    E_SEAL_SCDC_1_PROT_PM, \
+    E_SEAL_SCDC_2_PROT_PM, \
+    E_SEAL_SCDC_3_PROT_PM, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY, \
+    E_SEAL_DUMMY
+
+//processor group
+#define SEAL_PROCESSOR_GROUP0 \
+    E_SEAL_DBBUS, \
+    E_SEAL_MCU51, \
+    E_SEAL_CPU2, \
+    E_SEAL_VD_R2, \
+    E_SEAL_SECURE_R2, \
+    E_SEAL_SC, \
+    E_SEAL_CMDQ, \
+    E_SEAL_HEMCU ,\
+    E_SEAL_PROCESSOR_NUM
+
+//lock group
+#define SEAL_LOCK_GROUP_DUMMY \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY
+
+#define SEAL_LOCK_GROUP0 \
+    E_SEAL_SC_WP_DIPW, \
+    E_SEAL_SC_RP_DIPW, \
+    E_SEAL_SC_WP_DIPR, \
+    E_SEAL_SC_RP_DIPR, \
+    E_SEAL_AUDIO_LCL_R2_WR_PROTN_0, \
+    E_SEAL_AUDIO_LCL_R2_WR_PROTN_1, \
+    E_SEAL_AUDIO_LCL_R2_WR_PROTN_2, \
+    E_SEAL_AUDIO_LCL_R2_WR_PROTN_3, \
+    E_SEAL_AUDIO_SCL_R2_WR_PROTN_0, \
+    E_SEAL_AUDIO_SCL_R2_WR_PROTN_1, \
+    E_SEAL_AUDIO_SCL_R2_WR_PROTN_2, \
+    E_SEAL_AUDIO_SCL_R2_WR_PROTN_3, \
+    E_SEAL_SECURE_R2_WR_PROTN_0, \
+    E_SEAL_SECURE_R2_WR_PROTN_1, \
+    E_SEAL_SECURE_R2_WR_PROTN_2, \
+    E_SEAL_SECURE_R2_WR_PROTN_3
+
+#define SEAL_LOCK_GROUP1 \
+    E_SEAL_CIPHERENG_WP_SYSKEY, \
+    E_SEAL_CIPHERENG_RP_SYSKEY, \
+    E_SEAL_DSCRMB_WP_RIV0, \
+    E_SEAL_DSCRMB_RP_RIV0, \
+    E_SEAL_DSCRMB_WP_RIV1, \
+    E_SEAL_DSCRMB_RP_RIV1, \
+    E_SEAL_DSCRMB_WP_WDATA, \
+    E_SEAL_DSCRMB_RP_WDATA, \
+    E_SEAL_DSCRMB_WP_RIV2, \
+    E_SEAL_DSCRMB_RP_RIV2, \
+    E_SEAL_DSCRMB_WP_RIV3, \
+    E_SEAL_DSCRMB_RP_RIV3, \
+    E_SEAL_SC2_WP_SCM_M, \
+    E_SEAL_SC2_RP_SCM_M, \
+    E_SEAL_MVOP_WP_TLB, \
+    E_SEAL_AUDIO_PAS_PROTN
+
+#define SEAL_LOCK_GROUP2 \
+    E_SEAL_DSCRMB_RP_RDATA, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_RNG_PROTECT, \
+    E_SEAL_RSA_PROTECT, \
+    E_SEAL_SHA_PROTECT, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_EVD_R2_WR_PROTN_0, \
+    E_SEAL_EVD_R2_WR_PROTN_1, \
+    E_SEAL_EVD_R2_WR_PROTN_2, \
+    E_SEAL_EVD_R2_WR_PROTN_3, \
+    E_SEAL_HVD_R2_WR_PROTN_0, \
+    E_SEAL_HVD_R2_WR_PROTN_1, \
+    E_SEAL_HVD_R2_WR_PROTN_2, \
+    E_SEAL_HVD_R2_WR_PROTN_3
+
+#define SEAL_LOCK_GROUP3 \
+    E_SEAL_HVD_ES0_BUF, \
+    E_SEAL_HVD_ES1_BUF, \
+    E_SEAL_HVD_ES2_BUF, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_MFE0_ES_BUF, \
+    E_SEAL_MVD_WR_PROTN_0, \
+    E_SEAL_MVD_WR_PROTN_1, \
+    E_SEAL_MVD_WR_PROTN_2, \
+    E_SEAL_EVD_0_WR_PROTN_0, \
+    E_SEAL_EVD_1_WR_PROTN_0, \
+    E_SEAL_MHEG5_WR_PROTN_0, \
+    E_SEAL_AUDIO_DSP_ES_PROTN, \
+    E_SEAL_AUDIO_DSP_CACHE_PROTN, \
+    E_SEAL_EVD_0_WR_PROTN_1, \
+    E_SEAL_EVD_1_WR_PROTN_1, \
+    E_SEAL_VP9_TOP
+
+#define SEAL_LOCK_GROUP4 \
+    E_SEAL_TSO_WP_TSOFI, \
+    E_SEAL_TSO_RP_TSOFI, \
+    E_SEAL_MMFI_WP_MMFI0, \
+    E_SEAL_MMFI_RP_MMFI0, \
+    E_SEAL_MMFI_WP_MMFI1, \
+    E_SEAL_MMFI_RP_MMFI1, \
+    E_SEAL_TSP0_WP_PVR, \
+    E_SEAL_TSP0_RP_PVR, \
+    E_SEAL_TSP0_WP_PVR1, \
+    E_SEAL_TSP0_RP_PVR1, \
+    E_SEAL_TSP0_WP_FILEIN, \
+    E_SEAL_TSP0_RP_FILEIN, \
+    E_SEAL_TSP0_WP_QMEM, \
+    E_SEAL_TSP0_RP_QMEM, \
+    E_SEAL_TSP0_WP_FW, \
+    E_SEAL_TSP0_RP_FW
+
+#define SEAL_LOCK_GROUP5 \
+    E_SEAL_VE_WP, \
+    E_SEAL_VE_RP, \
+    E_SEAL_SC_WP_OD, \
+    E_SEAL_SC_RP_OD, \
+    E_SEAL_SC_WP_SCM_M, \
+    E_SEAL_SC_RP_SCM_M, \
+    E_SEAL_SC_WP_SCM_S, \
+    E_SEAL_SC_RP_SCM_S, \
+    E_SEAL_SC_WP_PDW0, \
+    E_SEAL_SC_RP_PDW0, \
+    E_SEAL_SC_WP_PDW1, \
+    E_SEAL_SC_RP_PDW1, \
+    E_SEAL_SC_WP_OPW, \
+    E_SEAL_SC_RP_OPW, \
+    E_SEAL_GOPD_PROTN, \
+    E_SEAL_AUDIO_AL_PROTN
+
+#define SEAL_LOCK_GROUP6 \
+    E_SEAL_GE0_SB_PROTN, \
+    E_SEAL_GE0_DB_PROTN, \
+    E_SEAL_GE1_SB_PROTN, \
+    E_SEAL_GE1_DB_PROTN, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY
+
+#define SEAL_LOCK_GROUP10 \
+    E_SEAL_FCIE_WR_PROT_ENABLE_0, \
+    E_SEAL_FCIE_WR_PROT_ENABLE_1, \
+    E_SEAL_FCIE_WR_PROT_ENABLE_2, \
+    E_SEAL_FCIE_WR_PROT_ENABLE_3, \
+    E_SEAL_HDCP_RIU_R_PROTN, \
+    E_SEAL_HDCP_XIU_R_PROTN, \
+    E_SEAL_HDCP_RIU_W_PROTN, \
+    E_SEAL_HDCP_XIU_W_PROTN, \
+    E_SEAL_FCIE_WR_PROT_0_LOCK, \
+    E_SEAL_FCIE_WR_PROT_1_LOCK, \
+    E_SEAL_FCIE_WR_PROT_2_LOCK, \
+    E_SEAL_FCIE_WR_PROT_3_LOCK, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY, \
+    E_SEAL_LOCK_DUMMY
+
+
+#define MIU0_PA_BASE               0x00000000UL
+#define MIU1_PA_BASE               0x80000000UL
+
+
+const int NonPmIpTbl[SEAL_NONPM_TBL_IP_NUM] =
+{
+    SEAL_NON_PM_GROUP0, SEAL_NON_PM_GROUP1, SEAL_NON_PM_GROUP2,
+    SEAL_NON_PM_GROUP3, SEAL_NON_PM_GROUP4, SEAL_NON_PM_GROUP5,
+    SEAL_NON_PM_GROUP6, SEAL_NON_PM_GROUP7, SEAL_NON_PM_GROUP8,
+    SEAL_NON_PM_GROUP9, SEAL_NON_PM_GROUP10, SEAL_NON_PM_GROUP11,
+    SEAL_NON_PM_GROUP12, SEAL_NON_PM_GROUP13, SEAL_NON_PM_GROUP14,
+    SEAL_NON_PM_GROUP15, SEAL_NON_PM_GROUP16, SEAL_NON_PM_GROUP17,
+    SEAL_NON_PM_GROUP18, SEAL_NON_PM_GROUP19, SEAL_NON_PM_GROUP20,
+    SEAL_NON_PM_GROUP21, SEAL_NON_PM_GROUP22, SEAL_NON_PM_GROUP23
+};
+
+const int LockTbl[SEAL_TBL_LOCK_NUM] =
+{
+    SEAL_LOCK_GROUP10,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP0, /*0x74*/
+    SEAL_LOCK_GROUP1,
+    SEAL_LOCK_GROUP2,
+    SEAL_LOCK_GROUP3,
+    SEAL_LOCK_GROUP4,
+    SEAL_LOCK_GROUP5,
+    SEAL_LOCK_GROUP6,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+    SEAL_LOCK_GROUP_DUMMY,
+};
+
+static unsigned long long __PA2BA(unsigned long long u64PhyAddr)
+{
+    unsigned long long u64BusAddr = 0x0;
+
+    if( (u64PhyAddr >= MIU0_PA_BASE) && (u64PhyAddr < MIU1_PA_BASE) ) // MIU0
+        u64BusAddr = u64PhyAddr - MIU0_PA_BASE + CONFIG_MIU0_BUSADDR;
+    else if ( (u64PhyAddr >= MIU1_PA_BASE) ) // MIU1
+        u64BusAddr = u64PhyAddr - MIU1_PA_BASE + CONFIG_MIU1_BUSADDR;
+
+    return u64BusAddr;
+}
+
+int HAL_SEAL_GetNonPmIpIdx(int eNonPmIP)
+{
+    int s32HwIdx;
+    for (s32HwIdx = 0; s32HwIdx < SEAL_NONPM_TBL_IP_NUM; s32HwIdx++)
+    {
+        if(eNonPmIP == NonPmIpTbl[s32HwIdx])
+        {
+            return s32HwIdx;
+        }
+    }
+    return (-1);
+}
+
+int HAL_SEAL_GetLockIdx(int eLockId)
+{
+    int s32HwIdx;
+    for (s32HwIdx = 0; s32HwIdx < SEAL_TBL_LOCK_NUM; s32HwIdx++)
+    {
+        if(eLockId == LockTbl[s32HwIdx])
+        {
+            return s32HwIdx;
+        }
+    }
+    return (-1);
+}
+
+
+int HAL_SEAL_SetSecureRange(unsigned long long startAddr, unsigned long long endAddr, int attr)
+{
+    unsigned int bankBase;
+    unsigned int startRegOffset;
+    unsigned int endRegOffset;
+    unsigned int attrRegOffset;
+    unsigned int miuSel;
+    unsigned long long startOffset;
+    unsigned long long endOffset;
+    unsigned int offset;
+    int i, free;
+
+    _phy_to_miu_offset(miuSel, startOffset, startAddr);
+    _phy_to_miu_offset(miuSel, endOffset, endAddr);
+
+    if (miuSel==0)
+    {
+        bankBase = SEAL_SECURE0_RANGE0;
+    }
+    else if (miuSel==1)
+    {
+        bankBase = SEAL_SECURE1_RANGE0;
+    }
+    else
+    {
+        return 0;
+    }
+
+    // check same range
+    for (i=0; i<REG_SECURE_RANGE_NUM; i++)
+    {
+        unsigned int offset = i*REG_SECURE_RANGE_OFFSET;
+        unsigned int startRegOffset = REG_SECURE_RANGE0_START_ADDR + offset;
+        unsigned int endRegOffset = REG_SECURE_RANGE0_END_ADDR + offset;
+        unsigned int attrRegOffset = REG_SECURE_RANGE0_ATTRIBUTE + offset;
+        unsigned long long start = 0;
+        unsigned long long end = 0;
+        start |= RIU[bankBase + startRegOffset + 4];
+        start <<= 16;
+        start |= RIU[bankBase + startRegOffset + 2];
+        start <<= 16;
+        start |= RIU[bankBase + startRegOffset];
+        end |= RIU[bankBase + endRegOffset + 4];
+        end <<= 16;
+        end |= RIU[bankBase + endRegOffset + 2];
+        end <<= 16;
+        end |= RIU[bankBase + endRegOffset];
+
+        // same range, only set attribute
+        if ( ((RIU[bankBase + REG_SECURE0_DUMMY0]) & (1<<i))
+            && (start == startOffset)
+            && (end == endOffset) )
+        {
+            RIU[bankBase + attrRegOffset] = attr;
+            return 1;
+        }
+    }
+
+//    // Clean secure range by filling 0xDEADBEEF. Confirmed that 0xDEADBEEF is an undefined instruction for ARMv8 arch32/64 architecture.
+//    while(clearStart < clearEnd)
+//    {
+//        *clearStart++ = 0xDEADBEEF;
+//    }
+
+    // find an unused range
+    for (free=0; free<REG_SECURE_RANGE_NUM; free++)
+    {
+        // work-around for 0x76 not readable issue
+        if ( ! ((RIU[bankBase + REG_SECURE0_DUMMY0]) & (1<<free)) )
+        {
+            break;
+        }
+    }
+
+    if (free >= REG_SECURE_RANGE_NUM) // no free range
+    {
+        return 0;
+    }
+
+    offset = free*REG_SECURE_RANGE_OFFSET;
+    startRegOffset = REG_SECURE_RANGE0_START_ADDR + offset;
+    endRegOffset = REG_SECURE_RANGE0_END_ADDR + offset;
+    attrRegOffset = REG_SECURE_RANGE0_ATTRIBUTE + offset;
+
+    RIU[bankBase + startRegOffset] = (startOffset & 0xFFFFULL);
+    RIU[bankBase + startRegOffset + 2] = ((startOffset>>16) & 0xFFFFULL);
+    RIU[bankBase + startRegOffset + 4] = ((startOffset>>32) & 0xFFFFULL);
+
+    RIU[bankBase + endRegOffset] = (endOffset & 0xFFFFULL);
+    RIU[bankBase + endRegOffset + 2] = ((endOffset>>16) & 0xFFFFULL);
+    RIU[bankBase + endRegOffset + 4] = ((endOffset>>32) & 0xFFFFULL);
+
+    RIU[bankBase + attrRegOffset] = attr;
+    (RIU[bankBase + REG_SECURE0_DUMMY0]) |= (1<<free);
+    RIU[bankBase + REG_SECURE0_DETECT_ENABLE] = RIU[bankBase + REG_SECURE0_DUMMY0];
+
+    return 1;
+}
+
+int HAL_SEAL_DisableRIUBridges(void)
+{
+    // set hosts of PM RIU bridge to non-secure
+    RIU[SEAL_TZPC_PM_BASE + REG_PM_RIU_BRIDGE] = (0x5555);
+
+    // set hosts of NONPM RIU bridge to non-secure (except ARM)
+    RIU[SEAL_TZPC_NONPM_BASE + REG_NONPM_RIU_BRIDGE] = (0x5555);
+
+    // Set ARM to non-secure
+    (RIU[REG_TZPC_LEGACY_SECUREPROCESSOR]) |= (FLAG_TZPC_NONSECURE_ARM);
+
+    return 1;
+}
+
+int HAL_SEAL_Init(void)
+{
+    // mask decode error when non-secure CPU access miu secure range
+    // mask decode error when non-secure CPU access secure riu register bank
+    // mask decode error when CPU access undefined address area
+    (RIU[SEAL_TZPC_NONPM_BASE + (0x7e<<1)]) |= (0x000e);
+
+    // protect watermark control registers
+    (RIU[SEAL_TZPC_NONPM_BASE + (0x7d<<1)]) &= ~(1<<15);
+
+    // secure AESDMA, FCIE
+    HAL_SEAL_SetMIUHost(E_SEAL_DSCRMB3_PROT_NONPM, 1);
+    HAL_SEAL_SetMIUHost(E_SEAL_DSCRMB5_PROT_NONPM, 1);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE0_PROT_NONPM, 1);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE1_PROT_NONPM, 1);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE2_PROT_NONPM, 1);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE3_PROT_NONPM, 1);
+
+    // Set hosts of RIU bridge to non-secure (except ARM and DB_BUS)
+    RIU[SEAL_TZPC_PM_BASE + REG_PM_RIU_BRIDGE] = (0x5554);
+    RIU[SEAL_TZPC_NONPM_BASE + REG_NONPM_RIU_BRIDGE] = (0x5554);
+
+    return 1;
+}
+
+int HAL_SEAL_SetMIUHost(int swIdx, int bSecure)
+{
+    int hwIdx = HAL_SEAL_GetNonPmIpIdx(swIdx);
+
+    if (hwIdx < 0)
+    {
+        return 0;
+    }
+
+    if (bSecure)
+        (RIU[REG_TZPC_NONPM_MIU_HOST + ((hwIdx>>4)<<1)]) &= ~(1<<(hwIdx&15));
+    else
+        (RIU[REG_TZPC_NONPM_MIU_HOST + ((hwIdx>>4)<<1)]) |= (1<<(hwIdx&15));
+
+    return 1;
+}
+
+int HAL_SEAL_SetRIUBank(int swIdx, int bSecure)
+{
+    int hwIdx = HAL_SEAL_GetNonPmIpIdx(swIdx);
+    if (hwIdx < 0)
+    {
+        return 0;
+    }
+
+    if (bSecure)
+        (RIU[REG_TZPC_NONPM_SECURE_BANK + ((hwIdx>>4)<<1)]) &= ~(1<<(hwIdx&15));
+    else
+        (RIU[REG_TZPC_NONPM_SECURE_BANK + ((hwIdx>>4)<<1)]) |= (1<<(hwIdx&15));
+
+    return 1;
+}
+
+
+int HAL_SEAL_SetRIURegister(int swIdx, int bSecure)
+{
+    int hwIdx = HAL_SEAL_GetLockIdx(swIdx);
+    if (hwIdx < 0)
+    {
+        return 0;
+    }
+
+    if (bSecure)
+        (RIU[REG_TZPC_NONPM_SECURE_REG + ((hwIdx>>4)<<1)]) &= ~(1<<(hwIdx&15));
+    else
+        (RIU[REG_TZPC_NONPM_SECURE_REG + ((hwIdx>>4)<<1)]) |= (1<<(hwIdx&15));
+    return 1;
+}
+
+int HAL_SEAL_Cleanup(void)
+{
+    // non-secure FCIE
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE0_PROT_NONPM, 0);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE1_PROT_NONPM, 0);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE2_PROT_NONPM, 0);
+    HAL_SEAL_SetMIUHost(E_SEAL_NFIE3_PROT_NONPM, 0);
+    return 1;
+}

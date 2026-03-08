@@ -277,7 +277,7 @@ static MMAP_MAPING staUbootMapMaping[] = {
     { E_LZO_MEM_USAGE          , "E_MMAP_ID_LZO_MEM_USAGE"       , "MI_AN_LZO_MEM_USAGE"},
     { E_LOCAL_DIMMING           , "E_MMAP_ID_LOCAL_DIMMING"        , NULL},
 
-    { E_DEMURA                      , "E_MMAP_ID_DEMURA"                       ,NULL},
+    { E_DEMURA                      , "E_MMAP_ID_DEMURA"                       ,"MI_DISPOUT_DEMURA"},
     { E_FRC_R2                       , "E_MMAP_ID_FRC_R2"                        ,"MI_DISP_FRC_R2"},
     { E_FAST_STR_BUFFER       , "E_MMAP_ID_FAST_STR_BUFFER"        ,NULL},
     { E_NUTTX_STR_STATUS    , "E_MMAP_ID_NUTTX_STR_STATUS"     ,NULL},

@@ -79,9 +79,9 @@ endif
 ifeq ($(CONFIG_XC_Init),y)
 COBJS += ./MsApiXC.o
 endif
-ifeq ($(CONFIG_DOLBY),y)
+
 COBJS += ./MsApiMspi.o
-endif
+
 COBJS += ./MsApiPanel.o
 COBJS += ./MsApiGEGOP.o
 COBJS += ./MsApiJpd.o
