@@ -973,7 +973,7 @@ void __init setup_arch(char **cmdline_p)
 	// Remove first instance of androidboot.serialno=EMULATORXXXXXXXXX
 	// This code isn't 100% fool proof and meant to be temporary. For instance
 	// all edge-cases aren't taken in to account.
-
+	
 	start = strstr(boot_command_line, "androidboot.serialno=EMULATOR");
 	if (start != NULL) {
 		char *end = strchr(start, (int)' ');
