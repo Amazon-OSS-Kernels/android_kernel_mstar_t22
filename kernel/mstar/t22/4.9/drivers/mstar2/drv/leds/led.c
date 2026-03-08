@@ -78,9 +78,7 @@
 #include <linux/leds.h>
 #include <linux/sign_of_life.h>
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 #include <linux/metricslog.h>
-#endif
 
 static struct mutex lock;
 
@@ -146,19 +144,18 @@ static DEFINE_MUTEX(Semutex_LD);
 static DEFINE_SPINLOCK(spinlock_ld);
 static MS_BOOL bReceived;
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
-
 struct metrics_info {
 	int flags;
-
 	/* Time when system enters full suspend */
 	struct timespec suspend_time;
 };
 static struct metrics_info info;
 
-
-static void bq_log_metrics(char *msg,
-	char *metricsmsg)
+/* metrics name screenstate
+ * group FTVE-PLATFORM, uf0h909h
+ *
+ */
+static void bq_log_metrics(char *metricsmsg)
 {
 	char buf[512];
 	struct timespec curr = current_kernel_time();
@@ -166,16 +163,22 @@ static void bq_log_metrics(char *msg,
 	struct timespec diff = timespec_sub(curr,
 			info.suspend_time);
 
+#ifdef CONFIG_AMAZON_MINERVA_METRICS_LOG
 	snprintf(buf, sizeof(buf),
-		"%s:def:value=0;CT;1,elapsed=%ld;TI;1:NR",
-		metricsmsg,
-		diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
+	"%s:%s:100:%s:def:value=0;IN;1,elapsed=%ld;TI;1:NR",
+		KERNEL_METRICS_GROUP_ID,
+		KERNEL_METRICS_SCREEN_DRAIN_SCHEMA_ID,
+		metricsmsg, diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
 	log_to_metrics(ANDROID_LOG_INFO, "drain_metrics", buf);
+#elif defined(CONFIG_AMAZON_METRICS_LOG)
+	snprintf(buf, sizeof(buf),
+		"%s:def:value=0;IN;1,elapsed=%ld;TI;1:NR",
+		metricsmsg, diff.tv_sec * 1000 + diff.tv_nsec / NSEC_PER_MSEC);
+	log_to_metrics(ANDROID_LOG_INFO, "drain_metrics", buf);
+#endif
 	/* Mark the suspend or resume time */
 	info.suspend_time = curr;
 }
-
-#endif
 
 /*=============================================================================
  * Local Functions
@@ -401,11 +404,9 @@ static struct abc123_led leds[] = {
 	{
 		.name = "tv_led",
 	},
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 	{
 		.name = "dummy_light",
 	}
-#endif
 };
 
 static ssize_t led_set(struct device *dev, struct device_attribute *attr,
@@ -477,8 +478,6 @@ led_set_end:
 }
 static DEVICE_ATTR(tv_led_set, 0220, NULL, led_set);
 
-#if defined(CONFIG_AMAZON_METRICS_LOG)
-
 static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr,
 				  const char *buf, size_t size)
 {
@@ -494,12 +493,12 @@ static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr
 	case 0:
 		mstar_set_screen_flag();
 		pr_info("backlight is off \n");
-		bq_log_metrics("Screen on drainage", "screen_on_drain");
+		bq_log_metrics("screen_on_drain");
 		break;
 	case 1:
 		mstar_clear_screen_flag();
 		pr_info("backlight is on\n");
-		bq_log_metrics("Screen off drainage", "screen_off_drain");
+		bq_log_metrics("screen_off_drain");
 		break;
 	default:
 		break;
@@ -508,15 +507,12 @@ static ssize_t dummy_light_set(struct device *dev, struct device_attribute *attr
 	return size;
 }
 static DEVICE_ATTR(light_set, 0220, NULL, dummy_light_set);
-#endif
 
 static int mstar_leds_probe(struct platform_device *pdev)
 {
 	int i;
 	int ret, rc;
-#if defined(CONFIG_AMAZON_METRICS_LOG)
 	info.suspend_time = current_kernel_time();
-#endif
 
 	LEDS_DRV_DEBUG("[LED]%s\n", __func__);
 	for (i = 0; i < ARRAY_SIZE(leds); i++) {
@@ -530,13 +526,11 @@ static int mstar_leds_probe(struct platform_device *pdev)
 			if (rc)
 				pr_err("[LED]device_create_file led_pattern fail!\n");
 		}
-	#if defined(CONFIG_AMAZON_METRICS_LOG)
 		if (strcmp(leds[i].name, "dummy_light") == 0) {
 			rc = device_create_file(leds[i].cdev.dev, &dev_attr_light_set);
 			if (rc)
 				pr_err("[LED]device_create_file dummy_light fail!\n");
 		}
-	#endif
 	}
 	led_init_status = 0;
 	mutex_init(&lock);
@@ -610,5 +604,5 @@ MODULE_AUTHOR("Mstar.");
 MODULE_DESCRIPTION("LED driver for Mstar chip");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("leds-mstar");
-#endif
+#endif /* CONFIG_HAS_LED */
 

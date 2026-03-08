@@ -146,7 +146,13 @@ int soft_trigger_event(unsigned long scancode,unsigned long keycode){
 		keycode = KEY_RESERVED;
 	}
 
-	if ((keycode != KEY_POWER_CEC) && (keycode != KEY_APP1) && (keycode != KEY_APP2) && (keycode != KEY_APP3) && (keycode != KEY_APP4)) {
+	if ((keycode != KEY_POWER_CEC) &&
+	    (keycode != KEY_APP1) &&
+	    (keycode != KEY_APP2) &&
+	    (keycode != KEY_APP3) &&
+	    (keycode != KEY_APP4) &&
+	    (keycode != KEY_BUTTON1) &&
+	    (keycode != KEY_BUTTON2)) {
 		pr_err("Use KEY_POWER as default key\n");
 		keycode = KEY_POWER;
 	}
