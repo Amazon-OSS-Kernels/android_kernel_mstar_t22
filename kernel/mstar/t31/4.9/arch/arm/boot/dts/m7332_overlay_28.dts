@@ -1,0 +1,34 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target = <&soc_m7332>;
+		__overlay__ {
+			android {
+				dtbo_overlay = "__overlay_success";
+				dtbo_addNode = "__AddNode_success";
+			};
+			android_test {
+				dtbo_addSubeNode = "__adddd_subeNode_property";
+			};
+
+		};
+	};
+
+	fragment@1 {
+		target = <&chosen>;
+		__overlay__ {
+			dtbo_addNode = "__AddNode_success";
+			dtbo_source = "m7332_overlay_28.dts";
+		};
+	};
+
+	fragment@2 {
+		target = <&ext_gpio_int0>;
+		__overlay__ {
+			dtbo_addNode = "__AddNode_success";
+			dtbo_source = "m7332_overlay_28.dts";
+		};
+	};
+};
