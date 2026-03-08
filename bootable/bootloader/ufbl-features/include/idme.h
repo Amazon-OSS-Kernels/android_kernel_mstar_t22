@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2011-2024 Amazon.com Inc. or its affiliates.  All Rights Reserved.
- *
  */
 #ifdef SUPPORT_UBOOT
 #ifndef UFBL_PLATFORM_AML
