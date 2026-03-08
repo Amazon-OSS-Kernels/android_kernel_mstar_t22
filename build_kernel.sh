@@ -3,7 +3,7 @@
 #
 #  build_kernel.sh
 #
-#  Copyright (c) 2019-2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#  Copyright (c) 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 ################################################################################
 
@@ -29,22 +29,12 @@ SCRIPT_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Configuration file for the build.
 CONFIG_FILE="${SCRIPT_BASE_DIR}/build_kernel_config.sh"
-
-# Prebuilts include folder
-PREBUILTS_FOLDER="${SCRIPT_BASE_DIR}/prebuilt"
+PATCH_FILE="${SCRIPT_BASE_DIR}/platform_patch.txt"
 
 # Workspace directory & relevant temp folders.
 WORKSPACE_DIR="$(mktemp -d)"
-
-TOOLCHAIN_DIR="${WORKSPACE_DIR}/toolchain"
 PLATFORM_EXTRACT_DIR="${WORKSPACE_DIR}/src"
-WORKSPACE_OUT_DIR="${WORKSPACE_DIR}/out"
-KERNEL_OUT_DIR="${WORKSPACE_OUT_DIR}/kernel"
-
-for d in "${TOOLCHAIN_DIR}" "${PLATFORM_EXTRACT_DIR}" "$KERNEL_OUT_DIR"
-do
-    mkdir -p "${d}"
-done
+mkdir -p "${PLATFORM_EXTRACT_DIR}"
 
 # Remove workspace directory upon completion.
 trap "rm -rf $WORKSPACE_DIR" EXIT
@@ -67,12 +57,6 @@ function validate_input_params {
     then
         echo "ERROR: Could not find config file ${CONFIG_FILE}. Please check" \
              "that you have extracted the build script properly and try again."
-        usage
-    fi
-
-    if [[ ! -d "${PREBUILTS_FOLDER}" ]]
-    then
-        echo "ERROR: Missing prebuilts folder ${PREBUILTS_FOLDER}"
         usage
     fi
 }
@@ -128,90 +112,54 @@ function extract_tarball {
     tar xf "${PLATFORM_TARBALL}" -C ${PLATFORM_EXTRACT_DIR}
 }
 
+function apply_patch {
+    if [[ -f "${PATCH_FILE}" ]]
+    then
+        echo "Applying patch to ${PLATFORM_EXTRACT_DIR}"
+        pushd ${PLATFORM_EXTRACT_DIR}
+        patch -p1 < ${PATCH_FILE}
+        popd
+    fi
+}
+
 function exec_build_kernel {
     CCOMPILE="${TOOLCHAIN_DIR}/bin/${TOOLCHAIN_PREFIX}"
+    MAKE_ARGS="ARCH=${TARGET_ARCH} CROSS_COMPILE=${CCOMPILE}"
 
-    if [[ -n "${KERNEL_SUBPATH}" ]]
-    then
-        MAKE_ARGS="-C ${KERNEL_SUBPATH}"
-    fi
+    # Move into the kernel sub folder.
+    pushd "${PLATFORM_EXTRACT_DIR}/${KERNEL_SUBPATH}"
 
-    MAKE_ARGS="${MAKE_ARGS} O=${KERNEL_OUT_DIR} ARCH=${TARGET_ARCH} CROSS_COMPILE=${CCOMPILE}"
-    echo "Base make args: ${MAKE_ARGS}"
+    # Step 1: Run genlink_kernel.sh
+    sh ./genlink_kernel.sh
 
-    # Move into the build base folder.
-    pushd "${PLATFORM_EXTRACT_DIR}"
+    # Step 2: defconfig
+    cp -f "arch/${TARGET_ARCH}/configs/${DEFCONFIG_NAME}" .config
 
-    # Create symlinks
-    ${KERNEL_SUBPATH}/genlink.sh
-
-    # Step 1: defconfig
-    echo "Make defconfig: make ${MAKE_ARGS} ${DEFCONFIG_NAME}"
-    make ${MAKE_ARGS} ${DEFCONFIG_NAME}
-
-    # Step 2: check trapz:
-    local KERNEL_FOLDER="${PLATFORM_EXTRACT_DIR}/${KERNEL_SUBPATH}"
-    local TRAPZ_CFG="${KERNEL_FOLDER}/arch/${TARGET_ARCH}/configs/trapz.config"
-    local OUTPUT_CFG="${KERNEL_OUT_DIR}/.config"
-
-    if [[ -f $TRAPZ_CFG ]]
-    then
-        echo "Adding trapz config to config"
-        cat "${TRAPZ_CFG}" >> "${OUTPUT_CFG}"
-    else
-        echo "No trapz config found."
-    fi
-
-    # Step 3: run oldconfig
-    echo "Make oldconfig: make ${MAKE_ARGS} oldconfig"
-    make ${MAKE_ARGS} oldconfig
+    # Step 3: run olddefconfig
+    echo "Make oldconfig: make ${MAKE_ARGS} olddefconfig"
+    make ${MAKE_ARGS} olddefconfig
 
     # Step 3A: output config, for reference
     echo ".config contents"
     echo "---------------------------------------------------------------------"
-    cat "${OUTPUT_CFG}"
+    cat .config
     echo "---------------------------------------------------------------------"
 
-    # Step 4: Make headers install
-    echo "Make headers install: make ${MAKE_ARGS} headers_install"
-    make ${MAKE_ARGS} headers_install
-
-    # Step 5: install prebuilt headers
-    if [[ -d "${PREBUILTS_FOLDER}" ]]
-    then
-        echo "Copying prebuilts to ${KERNEL_OUT_DIR}"
-        cp -av ${PREBUILTS_FOLDER}/* "${KERNEL_OUT_DIR}"
-    fi
-
-    # Step 6: dtbs
-    if [[ -n "${MAKE_DTBS}" ]]
-    then
-        echo "Make dtbs: make ${MAKE_ARGS} dtbs"
-        make ${MAKE_ARGS} dtbs
-    fi
-
-    # Step 7: full make
+    # Step 4: full make
     echo "Running full make"
-    if [[ -n "${ZIMAGE_TARGET}" ]]
-    then
-        make ${MAKE_ARGS} ${PARALLEL_EXECUTION} USE_TRAPZ=true zImage
-    else
-        make ${MAKE_ARGS} ${PARALLEL_EXECUTION} USE_TRAPZ=true
-    fi
+    make ${MAKE_ARGS} ${PARALLEL_EXECUTION}
 
-    if [[ $? -ne 0 ]]
-    then
-        echo "Build failed"
-        exit 10
+    if [[ $? != 0 ]]; then
+        echo "ERROR: Failed to build kernel" >&2
+        exit 1
     fi
 
     popd
 }
 
 function copy_to_output {
-    echo "Copying files to output"
-
-    pushd "${KERNEL_OUT_DIR}"
+    echo "Copying Kernel files to output"
+    pushd "${PLATFORM_EXTRACT_DIR}/${KERNEL_SUBPATH}"
     find "./arch/"${TARGET_ARCH}"/boot" -type f | sed 's/^\.\///' | while read CPFILE
     do
         local BASEDIR="$(dirname "${CPFILE}")"
@@ -250,10 +198,16 @@ TARGET_DIR="$(cd "${TARGET_DIR}" && pwd)"
 display_config
 
 # Phase 2: Set up environment
-download_toolchain
+if [ -n "${TOOLCHAIN_NAME}" ]; then
+    TOOLCHAIN_DIR="/tmp/${TOOLCHAIN_NAME}"
+fi
+if [ -z "$(ls -A ${TOOLCHAIN_DIR})" ]; then
+    download_toolchain
+fi
 extract_tarball
+apply_patch
 
-# Phase 3: build
+# Phase 3: build kernel
 exec_build_kernel
 
 # Phase 4: move to output
