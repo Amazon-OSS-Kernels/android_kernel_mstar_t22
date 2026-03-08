@@ -82,20 +82,20 @@ int log_timer_to_vitals_v2(enum android_log_priority priority,
 
 /* group ids */
 #define KERNEL_METRICS_GROUP_ID                      "uf0h909h"
-/* schema name: TBD */
-#define KERNEL_METRICS_TEST_SCHEMA_ID                "cebc/2/03330400"
+
+#define KERNEL_METRICS_TEST_SCHEMA_ID                "6mm6/2/02330410"
 /* schema name: KernelMetricsTest*/
-#define KERNEL_METRICS_TEST_SPACE_SCHEMA_ID          "hux7/2/03330400"
+#define KERNEL_METRICS_TEST_SPACE_SCHEMA_ID          "gggu/2/02330410"
 /* schema name: KernelMetricsTestSpace */
-#define KERNEL_METRICS_VITALS_COUNTER_TEST_SCHEMA_ID "hkm0/2/03330400"
+#define KERNEL_METRICS_VITALS_COUNTER_TEST_SCHEMA_ID "3af6/2/02330410"
 /* schema name: MetricsTestVitalsCounter*/
-#define KERNEL_METRICS_VITALS_TIMER_TEST_SCHEMA_ID   "2lcb/2/03330400"
+#define KERNEL_METRICS_VITALS_TIMER_TEST_SCHEMA_ID   "6syu/2/02330410"
 /* schema name: MetricsTestVitalsTimer*/
-#define KERNEL_METRICS_SCREEN_DRAIN_SCHEMA_ID        "b8kd/2/03330400"
+#define KERNEL_METRICS_SCREEN_DRAIN_SCHEMA_ID        "g6c4/2/02330410"
 /* schema name: KernelLEDScreenDrain*/
-#define KERNEL_METRICS_MSTAR_SPI_COUNTER_SCHEMA_ID   "hkm0/2/03330400"
+#define KERNEL_METRICS_MSTAR_SPI_COUNTER_SCHEMA_ID   "3af6/2/02330410"
 /* schema name: MetricsTestVitalsCounter*/
-#define KERNEL_DISPOUT_SCREEN_DRAIN_SCHEMA_ID        "b8kd/2/03330400"
+#define KERNEL_DISPOUT_SCREEN_DRAIN_SCHEMA_ID        "g6c4/2/02330410"
 /* schema name: KernelLEDScreenDrain*/
 
 #endif /* CONFIG_AMAZON_MINERVA_METRICS_LOG */

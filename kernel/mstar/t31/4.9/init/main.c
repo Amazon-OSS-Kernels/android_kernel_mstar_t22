@@ -136,6 +136,7 @@ EXPORT_SYMBOL(system_state);
  */
 #define MAX_INIT_ARGS CONFIG_INIT_ENV_ARG_LIMIT
 #define MAX_INIT_ENVS CONFIG_INIT_ENV_ARG_LIMIT
+#define BOOT_ARGS_BUF_SLIT  950 /* can't be bigger, or there will be data drop */
 
 extern void time_init(void);
 /* Default late time init is NULL. archs can override this later. */
@@ -607,7 +608,8 @@ extern void early_putstr(const char *fmt, ...);
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
-	char *after_dashes;
+	char *after_dashes, tmp[1000];
+	int len1;
 
 	set_task_stack_end_magic(&init_task);
 	smp_setup_processor_id();
@@ -642,7 +644,25 @@ asmlinkage __visible void __init start_kernel(void)
 	build_all_zonelists(NULL, NULL);
 	page_alloc_init();
 
-	pr_notice("Kernel command line: %s\n", boot_command_line);
+	len1 = strlen(boot_command_line);
+
+	/*pr_notice() will drop data if the string is longer than 968 bytes so need
+	 to split the string into two and use two pr_notice() calls to send it to log.
+	 the maximal commad line length is 2047. (may need to split into three if over 1936 bytes)
+	 current length is 1372
+	*/
+	if (len1 > BOOT_ARGS_BUF_SLIT) {
+           len1 = BOOT_ARGS_BUF_SLIT;
+	   //move to the end of the previous arg
+           while((boot_command_line[len1--] != ' ') && (len1 > 400));
+
+	   strlcpy(tmp, boot_command_line, len1+3);
+	   pr_notice("Kernel command line: %s", tmp);
+	   pr_notice("%s\n", (char *) &boot_command_line[len1+2]);
+	}
+	else
+	  pr_notice("Kernel command line: %s\n", boot_command_line);
+
 	parse_early_param();
 	after_dashes = parse_args("Booting kernel",
 				  static_command_line, __start___param,

@@ -919,10 +919,6 @@ MMC_DEV_ATTR(name, "%s\n", card->cid.prod_name);
 MMC_DEV_ATTR(oemid, "0x%04x\n", card->cid.oemid);
 MMC_DEV_ATTR(prv, "0x%x\n", card->cid.prv);
 MMC_DEV_ATTR(rev, "0x%x\n", card->ext_csd.rev);
-MMC_DEV_ATTR(pre_eol_info, "%02x\n", card->ext_csd.pre_eol_info);
-MMC_DEV_ATTR(life_time, "0x%02x 0x%02x\n",
-	card->ext_csd.device_life_time_est_typ_a,
-	card->ext_csd.device_life_time_est_typ_b);
 MMC_DEV_ATTR(serial, "0x%08x\n", card->cid.serial);
 MMC_DEV_ATTR(enhanced_area_offset, "%llu\n",
 		card->ext_csd.enhanced_area_offset);
@@ -962,6 +958,72 @@ static ssize_t mmc_dsr_show(struct device *dev,
 }
 
 static DEVICE_ATTR(dsr, S_IRUGO, mmc_dsr_show, NULL);
+
+static ssize_t mmc_life_time_show(struct device *dev,
+				  struct device_attribute *attr,
+				  char *buf)
+{
+	u8 *ext_csd;
+	int err = 0;
+	struct mmc_card *card = mmc_dev_to_card(dev);
+
+	mmc_get_card(card);
+	err = mmc_get_ext_csd(card, &ext_csd);
+	if (err) {
+		/* If the host or the card can't do the switch,
+		 *  fail more gracefully.
+		 */
+		if ((err != -EINVAL) && (err != -ENOSYS) && (err != -EFAULT)) {
+			mmc_put_card(card);
+			return err;
+		}
+	}
+
+	mmc_put_card(card);
+	card->ext_csd.device_life_time_est_typ_a = ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_A];
+	card->ext_csd.device_life_time_est_typ_b = ext_csd[EXT_CSD_DEVICE_LIFE_TIME_EST_TYP_B];
+	kfree(ext_csd);
+	if (buf) {
+		/* [sprintf] the buffer size is unknown and caller is from within so it should be safe */
+
+		return sprintf(buf, "0x%02x 0x%02x\n",  card->ext_csd.device_life_time_est_typ_a,
+							card->ext_csd.device_life_time_est_typ_b);
+	}
+	else
+	   return 0;
+}
+static DEVICE_ATTR(life_time, S_IRUGO, mmc_life_time_show, NULL);
+
+static ssize_t mmc_pre_eol_info_show(struct device *dev,
+				     struct device_attribute *attr,
+				     char *buf)
+{
+	u8 *ext_csd;
+	int err = 0;
+	struct mmc_card *card = mmc_dev_to_card(dev);
+
+	mmc_get_card(card);
+	err = mmc_get_ext_csd(card, &ext_csd);
+	if (err) {
+		/* If the host or the card can't do the switch,
+		 * fail more gracefully. */
+		if ((err != -EINVAL) && (err != -ENOSYS) && (err != -EFAULT)) {
+			mmc_put_card(card);
+			return err;
+		}
+	}
+	mmc_put_card(card);
+	card->ext_csd.pre_eol_info = ext_csd[EXT_CSD_PRE_EOL_INFO];
+	kfree(ext_csd);
+	if (buf) {
+	  /* [sprintf] the buffer size is unknown and caller is from within so it should be safe */
+
+	  return sprintf(buf, "0x%02x\n", card->ext_csd.pre_eol_info);
+	}
+	else
+          return 0;
+}
+static DEVICE_ATTR(pre_eol_info, S_IRUGO, mmc_pre_eol_info_show, NULL);
 
 static ssize_t mmc_health_repo_show(struct device *dev,
 				struct device_attribute *attr,

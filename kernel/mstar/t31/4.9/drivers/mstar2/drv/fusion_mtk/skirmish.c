@@ -1011,7 +1011,6 @@ void fusion_skirmish_return_all_from(FusionDev * dev, int from_fusion_id)
 
           if (skirmish->transfer2_to == 0) {
                if (skirmish->transfer_to == from_fusion_id) {
-                    FUSION_ASSERT(skirmish->transfer_from != 0);
                     FUSION_ASSERT(skirmish->transfer_count > 0);
                     if ( skirmish->lock_count != 0 ) {
                          print_skirmish( skirmish );

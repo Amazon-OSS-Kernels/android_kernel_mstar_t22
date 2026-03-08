@@ -1241,7 +1241,7 @@
 		bl_ctrl_hailey = <120>;
 		bl_ctrl_haileyplus = <120>;
 		bl_ctrl_inverse = <0>;
-		bl_ctrl_inverse_corleone = <1>;
+		bl_ctrl_inverse_abc123 = <1>;
 		vcc_gpio = <44>;
 		vcc_gpio_invert = <0>;
 		led_gpio = <4>;

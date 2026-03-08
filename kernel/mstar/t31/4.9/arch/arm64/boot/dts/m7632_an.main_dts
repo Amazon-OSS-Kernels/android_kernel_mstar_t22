@@ -1235,7 +1235,7 @@
 		irblaster-pwm_shelly = <2>;
 	};
 
-	gpio_wifi_ctl {
+	gpio_wifi_ctl: wifi_ctl {
 		compatible = "mstar,gpio-wifi-ctl";
 		wifi-ctl-gpio = <17>;
 	};
@@ -1257,7 +1257,7 @@
 		bl_ctrl_haileyplus = <120>;
 		bl_ctrl_shelly = <120>;
 		bl_ctrl_inverse = <0>;
-		bl_ctrl_inverse_corleone = <1>;
+		bl_ctrl_inverse_abc123 = <1>;
 		vcc_gpio = <44>;
 		vcc_gpio_invert = <0>;
 		led_gpio = <4>;

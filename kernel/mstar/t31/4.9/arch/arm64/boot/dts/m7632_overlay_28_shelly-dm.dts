@@ -1,0 +1,81 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    fragment@0 {
+        target = <&soc_m7632>;
+        __overlay__ {
+            android {
+                dtbo_overlay = "__overlay_success";
+                dtbo_addNode = "__AddNode_success";
+                fstab {
+                    product {
+                        compatible = "android,product";
+                        dev = "/dev/block/platform/mstar_mci.0/by-name/product";
+                        type = "ext4";
+                        mnt_flags = "ro";
+                        fsmgr_flags = "wait,verify";
+                    };
+                };
+            };
+            android_test {
+                dtbo_addSubeNode = "__adddd_subeNode_property";
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&irblaster_gpio>;
+        __overlay__ {
+            irblaster-enable_shelly = <0>;
+        };
+    };
+
+    fragment@2 {
+        target = <&gpio_wifi_ctl>;
+        __overlay__ {
+            wifi-ctl-gpio = <63>;
+        };
+    };
+
+    fragment@3 {
+        target = <&backlight>;
+        __overlay__ {
+            bl_ctrl_shelly = <6>;
+        };
+    };
+
+    fragment@4 {
+        target = <&keypad>;
+        __overlay__ {
+            keypad0 {
+                key_1 {
+                    linux,code = <0xfc>;
+                };
+            };
+            keypad1 {
+                key_1 {
+                    linux,code = <0xfc>;
+                };
+            };
+            keypad2 {
+                key_1 {
+                    linux,code = <0xfc>;
+                };
+            };
+            keypad3 {
+                key_1 {
+                    linux,code = <0xfc>;
+                };
+            };
+            keypad4 {
+                key_1 {
+                    linux,code = <0xfc>;
+                };
+            };
+        };
+    };
+
+};
+
+

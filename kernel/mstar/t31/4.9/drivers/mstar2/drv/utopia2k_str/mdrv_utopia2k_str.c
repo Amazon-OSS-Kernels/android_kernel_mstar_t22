@@ -133,47 +133,58 @@ static void get_wakeup_reason(void)
 	pm_wakeup_source = WAKEUP_SOURCE;
 	pm_wakeup_key = POWERON_KEY;
 	strcpy(power_on_src_name, "unknonw");
+	pr_info("[%s] pm_wakeup_source = 0x%x , pm_wakeup_key = 0x%x\n", __FUNCTION__, (pm_wakeup_source & 0x0F), pm_wakeup_key);
+
 	switch (pm_wakeup_source & 0x0F) {
 	case WKUP_SRC_IR:
 		switch (pm_wakeup_key) {
 		case 0x46:
+		case 0x0C: // RC5
 			pr_info("System is woken up by Power button \n");
 		case 0x9F:
+		case 0x29: // RC5
 			pr_info("System is waken up by Home button \n");
 		case 0x4A:
+		case 0x2B: // RC5
 			pr_info("System is woken up by Enter button \n");
-		case 0x3F:
+		case 0x3F: // RC5 share the same scancode
 			pr_info("System is woken up by Voice button \n");
 			sprintf(power_on_src_name, "%s", "power");
 			break;
 		case 0x5F:
+		case 0x39: // RC5
 			pr_info("System is woken up by Netflix key \n");
 			sprintf(power_on_src_name, "%s", "app_1");
 			break;
 		case 0xA1:
+		case 0x05: // RC5
 			pr_info("System is woken up by Amazon Video  key \n");
 			sprintf(power_on_src_name, "%s", "app_2");
 			break;
 		case 0xA2:
+		case 0x25: // RC5
 			pr_info("System is woken up by CUSTOM_3  key \n");
 			sprintf(power_on_src_name, "%s", "app_3");
 			break;
 		case 0xA3:
+		case 0x15: //RC5
 			pr_info("System is woken up by CUSTOM_4 key \n");
 			sprintf(power_on_src_name, "%s", "app_4");
 			break;
-                case 0xA4:
-                        pr_info("System is woken up by customized BUTTON_1 key \n");
-                        sprintf(power_on_src_name, "%s", "BUTTON_1");
-                        break;
-                case 0xA5:
-                        pr_info("System is woken up by HULU/BUTTON_2 key \n");
-                        sprintf(power_on_src_name, "%s", "BUTTON_2");
-                        break;
-                case 0xD2:
-                        pr_info("System is woken up by IMDB_TV/BUTTON_14 key \n");
-                        sprintf(power_on_src_name, "%s", "BUTTON_14");
-                        break;
+		case 0xA4:
+		case 0x3A: //RC5
+			pr_info("System is woken up by customized BUTTON_1 key \n");
+			sprintf(power_on_src_name, "%s", "BUTTON_1");
+			break;
+		case 0xA5:
+		case 0x06: // RC5
+			pr_info("System is woken up by HULU/BUTTON_2 key \n");
+			sprintf(power_on_src_name, "%s", "BUTTON_2");
+			break;
+		case 0xD2:
+			pr_info("System is woken up by IMDB_TV/BUTTON_14 key \n");
+			sprintf(power_on_src_name, "%s", "BUTTON_14");
+			break;
 		}
 		break;
 	case WKUP_SRC_SAR:
