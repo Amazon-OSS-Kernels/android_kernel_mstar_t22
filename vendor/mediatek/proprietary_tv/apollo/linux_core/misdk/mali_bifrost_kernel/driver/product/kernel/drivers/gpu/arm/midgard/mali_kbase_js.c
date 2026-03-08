@@ -570,6 +570,8 @@ int kbasep_js_kctx_init(struct kbase_context *const kctx)
 
 	KBASE_DEBUG_ASSERT(kctx != NULL);
 
+	kbase_ctx_sched_init_ctx(kctx);
+
 	kbdev = kctx->kbdev;
 	KBASE_DEBUG_ASSERT(kbdev != NULL);
 
@@ -646,6 +648,8 @@ void kbasep_js_kctx_term(struct kbase_context *kctx)
 		kbase_backend_ctx_count_changed(kbdev);
 		mutex_unlock(&kbdev->js_data.runpool_mutex);
 	}
+
+	kbase_ctx_sched_remove_ctx(kctx);
 }
 
 /**

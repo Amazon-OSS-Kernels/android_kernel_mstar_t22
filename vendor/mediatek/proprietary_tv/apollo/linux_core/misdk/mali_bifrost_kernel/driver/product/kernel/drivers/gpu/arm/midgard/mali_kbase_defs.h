@@ -475,19 +475,6 @@ enum kbase_atom_exit_protected_state {
 };
 
 /**
- * struct kbase_ext_res - Contains the info for external resources referred
- *                        by an atom, which have been mapped on GPU side.
- * @gpu_address:          Start address of the memory region allocated for
- *                        the resource from GPU virtual address space.
- * @alloc:                pointer to physical pages tracking object, set on
- *                        mapping the external resource on GPU side.
- */
-struct kbase_ext_res {
-	u64 gpu_address;
-	struct kbase_mem_phy_alloc *alloc;
-};
-
-/**
  * struct kbase_jd_atom  - object representing the atom, containing the complete
  *                         state and attributes of an atom.
  * @work:                  work item for the bottom half processing of the atom,
@@ -509,8 +496,9 @@ struct kbase_ext_res {
  * @in_jd_list:            flag set to true if atom's @jd_item is currently on a list,
  *                         prevents atom being processed twice.
  * @nr_extres:             number of external resources referenced by the atom.
- * @extres:                pointer to the location containing info about @nr_extres
- *                         external resources referenced by the atom.
+ * @extres:                Pointer to @nr_extres VA regions containing the external
+ *                         resource allocation and other information.
+ *                         @nr_extres external resources referenced by the atom.
  * @device_nr:             indicates the coregroup with which the atom is associated,
  *                         when BASE_JD_REQ_SPECIFIC_COHERENT_GROUP specified.
  * @jc:                    GPU address of the job-chain.
@@ -603,7 +591,7 @@ struct kbase_jd_atom {
 	bool in_jd_list;
 
 	u16 nr_extres;
-	struct kbase_ext_res *extres;
+	struct kbase_va_region **extres;
 
 	u32 device_nr;
 	u64 jc;
@@ -1188,8 +1176,11 @@ struct mstar_dvfs
  * @entry_set_ate:    program the pte to be a valid address translation entry to
  *                    encode the physical address of the actual page being mapped.
  * @entry_set_pte:    program the pte to be a valid entry to encode the physical
- *                    address of the next lower level page table.
- * @entry_invalidate: clear out or invalidate the pte.
+ *                    address of the next lower level page table and also update
+ *                    the number of valid entries.
+ * @entries_invalidate: clear out or invalidate a range of ptes.
+ * @get_num_valid_entries: returns the number of valid entries for a specific pgd.
+ * @set_num_valid_entries: sets the number of valid entries for a specific pgd
  * @flags:            bitmask of MMU mode flags. Refer to KBASE_MMU_MODE_ constants.
  */
 struct kbase_mmu_mode {
@@ -1204,8 +1195,11 @@ struct kbase_mmu_mode {
 	int (*pte_is_valid)(u64 pte, unsigned int level);
 	void (*entry_set_ate)(u64 *entry, struct tagged_addr phy,
 			unsigned long flags, unsigned int level);
-	void (*entry_set_pte)(u64 *entry, phys_addr_t phy);
-	void (*entry_invalidate)(u64 *entry);
+	void (*entry_set_pte)(u64 *pgd, u64 vpfn, phys_addr_t phy);
+	void (*entries_invalidate)(u64 *entry, u32 count);
+	unsigned int (*get_num_valid_entries)(u64 *pgd);
+	void (*set_num_valid_entries)(u64 *pgd,
+			unsigned int num_of_valid_entries);
 	unsigned long flags;
 };
 
@@ -2214,16 +2208,15 @@ struct kbasep_gwt_list_element {
  *                                 to a @kbase_context.
  * @ext_res_node:                  List head for adding the metadata to a
  *                                 @kbase_context.
- * @alloc:                         The physical memory allocation structure
- *                                 which is mapped.
- * @gpu_addr:                      The GPU virtual address the resource is
- *                                 mapped to.
- *
+ * @reg:                           External resource information, containing
+ *                                 the corresponding VA region
+ * @ref:                           Reference count.
+
  * External resources can be mapped into multiple contexts as well as the same
  * context multiple times.
- * As kbase_va_region itself isn't refcounted we can't attach our extra
- * information to it as it could be removed under our feet leaving external
- * resources pinned.
+ * As kbase_va_region is refcounted, we guarantee that it will be available
+ * for the duration of the external resource, meaning it is sufficient to use
+ * it to rederive any additional data, like the GPU address.
  * This metadata structure binds a single external resource to a single
  * context, ensuring that per context mapping is tracked separately so it can
  * be overridden when needed and abuses by the application (freeing the resource
@@ -2231,8 +2224,8 @@ struct kbasep_gwt_list_element {
  */
 struct kbase_ctx_ext_res_meta {
 	struct list_head ext_res_node;
-	struct kbase_mem_phy_alloc *alloc;
-	u64 gpu_addr;
+	struct kbase_va_region *reg;
+	u32 ref;
 };
 
 enum kbase_reg_access_type {

@@ -807,6 +807,15 @@ int kbase_mem_flags_change(struct kbase_context *kctx, u64 gpu_addr, unsigned in
 	if (!reg || (reg->flags & KBASE_REG_FREE))
 		goto out_unlock;
 
+	/* There is no use case to support MEM_FLAGS_CHANGE ioctl for allocations
+	 * that have NO_USER_FREE flag set, to mark them as evictable/reclaimable.
+	 * This would usually include JIT allocations, Tiler heap related allocations
+	 * & GPU queue ringbuffer and none of them needs to be explicitly marked
+	 * as evictable by Userspace.
+	 */
+	if (reg->flags & KBASE_REG_JIT)
+		goto out_unlock;
+
 	/* Is the region being transitioning between not needed and needed? */
 	prev_needed = (KBASE_REG_DONT_NEED & reg->flags) == KBASE_REG_DONT_NEED;
 	new_needed = (BASE_MEM_DONT_NEED & flags) == BASE_MEM_DONT_NEED;
@@ -1958,7 +1967,7 @@ static int kbase_cpu_mmap(struct kbase_context *kctx,
  out:
 	return err;
 }
-
+#if defined(CONFIG_MALI_VECTOR_DUMP)
 static int kbase_mmu_dump_mmap(struct kbase_context *kctx, struct vm_area_struct *vma, struct kbase_va_region **const reg, void **const kmap_addr)
 {
 	struct kbase_va_region *new_reg;
@@ -2016,7 +2025,7 @@ out_va_region:
 out:
 	return err;
 }
-
+#endif
 
 void kbase_os_mem_map_lock(struct kbase_context *kctx)
 {
@@ -2154,6 +2163,7 @@ int kbase_mmap(struct file *file, struct vm_area_struct *vma)
 		err = -EINVAL;
 		goto out_unlock;
 	case PFN_DOWN(BASE_MEM_MMU_DUMP_HANDLE):
+#if defined(CONFIG_MALI_VECTOR_DUMP)
 		/* MMU dump */
 		err = kbase_mmu_dump_mmap(kctx, vma, &reg, &kaddr);
 		if (0 != err)
@@ -2161,6 +2171,11 @@ int kbase_mmap(struct file *file, struct vm_area_struct *vma)
 		/* free the region on munmap */
 		free_on_close = 1;
 		break;
+#else
+		/* Illegal handle for direct map */
+		err = -EINVAL;
+		goto out_unlock;
+#endif /* defined(CONFIG_MALI_VECTOR_DUMP) */
 	case PFN_DOWN(BASE_MEM_COOKIE_BASE) ...
 	     PFN_DOWN(BASE_MEM_FIRST_FREE_ADDRESS) - 1: {
 		err = kbasep_reg_mmap(kctx, vma, &reg, &nr_pages,
@@ -2238,11 +2253,13 @@ int kbase_mmap(struct file *file, struct vm_area_struct *vma)
 	err = kbase_cpu_mmap(kctx, reg, vma, kaddr, nr_pages, aligned_offset,
 			free_on_close);
 
+#if defined(CONFIG_MALI_VECTOR_DUMP)
 	if (vma->vm_pgoff == PFN_DOWN(BASE_MEM_MMU_DUMP_HANDLE)) {
 		/* MMU dump - userspace should now have a reference on
 		 * the pages, so we can now free the kernel mapping */
 		vfree(kaddr);
 	}
+#endif /* defined(CONFIG_MALI_VECTOR_DUMP) */
 
 out_unlock:
 	kbase_gpu_vm_unlock(kctx);
