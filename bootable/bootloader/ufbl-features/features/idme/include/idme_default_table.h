@@ -1,7 +1,7 @@
 /*
  * idme_default_table.h
  *
- * Copyright 2011-2022 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2011-2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  */
 
 /*!
@@ -74,12 +74,12 @@
 #include "idme_default_table_sophia.h"
 #endif
 
-#if defined(UFBL_PROJ_DUCKIE)
-/* DUCKIE already in mass production, not change */
-#include "idme_default_table_duckie.h"
-#elif defined(UFBL_PROJ_BRANDENBURG)
+#if defined(UFBL_PROJ_ABC)
+/* ABC already in mass production, not change */
+#include "idme_default_table_ABC.h"
+#elif defined(UFBL_PROJ_ABC)
 /* BRANDENBUG will do PVT soon, not change */
-#include "idme_default_table_brandenburg.h"
+#include "idme_default_table_ABC.h"
 #elif defined(UFBL_PLAT_MTK_T31)
 #include "idme_default_table_mtk_t31.h"
 #elif defined(UFBL_PLAT_MTK_MT9022)
@@ -125,6 +125,10 @@
 
 #if defined(UFBL_PLAT_AML_S905Y4)
 #include "idme_default_table_s905y4.h"
+#endif
+
+#if defined(UFBL_PROJ_ABC)
+#include "idme_default_table_ABC.h"
 #endif
 
 #if defined(UFBL_PROJ_ABC)
