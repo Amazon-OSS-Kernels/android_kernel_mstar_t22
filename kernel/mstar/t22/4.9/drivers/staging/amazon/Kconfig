@@ -25,13 +25,22 @@ config AMAZON_SIGN_OF_LIFE_MSTAR
         The life cycle is implemented on MStar platform to record
         boot/shutdown information.
 
-
 config AMAZON_METRICS_LOG
 	bool "Amazon Metrics logger driver"
 	select RING_BUFFER
 	default n
 	---help---
 		Enable Amazon Metrics/Vitals logger driver
+
+config AMAZON_MINERVA_METRICS_LOG
+	bool "Amazon Minerva Metrics logger"
+	select RING_BUFFER
+	default n
+	---help---
+		Enable Amazon Minerva Metrics/Vitals logger
+		This replaces DCM metrics. User can support
+		both DCM metrics and Minerva metrics by having
+		both of them set to yes
 
 config AMAZON_METRICS_LOG_TEST
 	tristate "Amazon Metrics logger driver test module"
