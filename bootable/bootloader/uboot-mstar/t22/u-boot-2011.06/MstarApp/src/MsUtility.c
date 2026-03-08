@@ -1182,16 +1182,11 @@ int is_lockdown()
 int chk_cmd_lockdown(const char* command)
 {
    if ( (is_lockdown()) &&
-        ( (strstr(command, ";")) ||  /* only accept single command in a line */
-          (strstr(command, "$")) ||  /* no $ is allowed */
-          ( (strncmp("fastboot", command, strlen("fastboot"))) &&
-            (strncmp("reset", command, strlen("reset"))) &&
-            (strncmp(command, "usb", strlen("usb")) || strncmp("usb", command, strlen(command))) &&
-            (strncmp("estar", command, strlen("estar"))) &&
-            (strncmp("onetimeunlock", command, strlen("onetimeunlock")))
-          )
-        )
-      )
+        (strncmp("fastboot", command, strlen("fastboot"))) &&
+        (strncmp("reset", command, strlen("reset"))) &&
+        (strncmp("usb", command, strlen("usb"))) &&
+        (strncmp("estar", command, strlen("estar"))) &&
+        (strncmp("onetimeunlock", command, strlen("onetimeunlock"))) )
       return 0;
    else
       return 1;
