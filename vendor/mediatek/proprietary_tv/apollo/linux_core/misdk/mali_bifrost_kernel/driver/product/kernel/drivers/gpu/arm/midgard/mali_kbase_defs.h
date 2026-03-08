@@ -166,6 +166,11 @@
 #define KBASE_TRACE_SIZE (1 << KBASE_TRACE_SIZE_LOG2)
 #define KBASE_TRACE_MASK ((1 << KBASE_TRACE_SIZE_LOG2)-1)
 
+/**
+ * Maximum number of GPU memory region zones
+ */
+#define KBASE_REG_ZONE_MAX 4ul
+
 #include "mali_kbase_js_defs.h"
 #include "mali_kbase_hwaccess_defs.h"
 
@@ -1211,6 +1216,21 @@ struct kbase_mmu_mode const *kbase_mmu_mode_get_aarch64(void);
 
 
 /**
+ * struct kbase_reg_zone - Information about GPU memory region zones
+ * @base_pfn: Page Frame Number in GPU virtual address space for the start of
+ *            the Zone
+ * @va_size_pages: Size of the Zone in pages
+ *
+ * Track information about a zone KBASE_REG_ZONE() and related macros.
+ * In future, this could also store the &rb_root that are currently in
+ * &kbase_context
+ */
+struct kbase_reg_zone {
+	u64 base_pfn;
+	u64 va_size_pages;
+};
+
+/**
  * struct kbase_device   - Object representing an instance of GPU platform device,
  *                         allocated from the probe method of mali driver.
  * @hw_quirks_sc:          Configuration to be used for the shader cores as per
@@ -1862,6 +1882,7 @@ struct kbase_sub_alloc {
  * @reg_rbtree_exec:      RB tree of the memory regions allocated from the EXEC_VA
  *                        zone of the GPU virtual address space. Used for GPU-executable
  *                        allocations which don't need the SAME_VA property.
+ * @reg_zone:             Zone information for the reg_rbtree_<...> members.
  * @cookies:              Bitmask containing of BITS_PER_LONG bits, used mainly for
  *                        SAME_VA allocations to defer the reservation of memory region
  *                        (from the GPU virtual address space) from base_mem_alloc
@@ -1928,14 +1949,10 @@ struct kbase_sub_alloc {
  *                        Generally the reference count is incremented when the context
  *                        is scheduled in and an atom is pulled from the context's per
  *                        slot runnable tree.
- * @mm_update_lock:       lock used for handling of special tracking page.
  * @process_mm:           Pointer to the memory descriptor of the process which
  *                        created the context. Used for accounting the physical
  *                        pages used for GPU allocations, done for the context,
  *                        to the memory consumed by the process.
- * @same_va_end:          End address of the SAME_VA zone (in 4KB page units)
- * @exec_va_start:        Start address of the EXEC_VA zone (in 4KB page units)
- *                        or U64_MAX if the EXEC_VA zone is uninitialized.
  * @gpu_va_end:           End address of the GPU va space (in 4KB page units)
  * @jit_va:               Indicates if a JIT_VA zone has been created.
  * @timeline:             Object tracking the number of atoms currently in flight for
@@ -2062,6 +2079,7 @@ struct kbase_context {
 	struct rb_root reg_rbtree_same;
 	struct rb_root reg_rbtree_custom;
 	struct rb_root reg_rbtree_exec;
+	struct kbase_reg_zone reg_zone[KBASE_REG_ZONE_MAX];
 
 
 	unsigned long    cookies;
@@ -2105,10 +2123,7 @@ struct kbase_context {
 	 * Mutable flags *must* be accessed under jctx.sched_info.ctx.jsctx_mutex
 	 *
 	 * All other flags must be added there */
-	spinlock_t         mm_update_lock;
-	struct mm_struct __rcu *process_mm;
-	u64 same_va_end;
-	u64 exec_va_start;
+	struct mm_struct *process_mm;
 	u64 gpu_va_end;
 	bool jit_va;
 
@@ -2180,6 +2195,7 @@ struct kbase_context {
 
 	int priority;
 	s16 atoms_count[KBASE_JS_ATOM_SCHED_PRIO_COUNT];
+	struct task_struct *task;
 };
 
 #ifdef CONFIG_MALI_CINSTR_GWT
@@ -2211,7 +2227,7 @@ struct kbasep_gwt_list_element {
  * @reg:                           External resource information, containing
  *                                 the corresponding VA region
  * @ref:                           Reference count.
-
+ *
  * External resources can be mapped into multiple contexts as well as the same
  * context multiple times.
  * As kbase_va_region is refcounted, we guarantee that it will be available

@@ -206,6 +206,7 @@ static void kbase_report_gpu_fault(struct kbase_device *kbdev, int multiple)
 {
 	u32 status;
 	u64 address;
+	uintptr_t fault_addr;
 
 	status = kbase_reg_read(kbdev, GPU_CONTROL_REG(GPU_FAULTSTATUS));
 	address = (u64) kbase_reg_read(kbdev,
@@ -213,10 +214,12 @@ static void kbase_report_gpu_fault(struct kbase_device *kbdev, int multiple)
 	address |= kbase_reg_read(kbdev,
 			GPU_CONTROL_REG(GPU_FAULTADDRESS_LO));
 
-	dev_warn(kbdev->dev, "GPU Fault 0x%08x (%s) at 0x%016llx",
+	fault_addr = address;
+
+	dev_warn(kbdev->dev, "GPU Fault 0x%08x (%s) at PA %pK",
 			status & 0xFF,
 			kbase_exception_name(kbdev, status),
-			address);
+			(void *)fault_addr);
 	if (multiple)
 		dev_warn(kbdev->dev, "There were multiple GPU faults - some have not been reported\n");
 }

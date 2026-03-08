@@ -228,7 +228,7 @@ static void entry_set_pte(u64 *pgd, u64 vpfn, phys_addr_t phy)
 	unsigned int nr_entries = get_num_valid_entries(pgd);
 
 	page_table_entry_set(&pgd[vpfn], (phy & PAGE_MASK) | ENTRY_ACCESS_BIT |
-			ENTRY_IS_PTE);
+		ENTRY_IS_PTE);
 
 	set_num_valid_entries(pgd, nr_entries + 1);
 }
@@ -240,7 +240,6 @@ static void entries_invalidate(u64 *entry, u32 count)
 	for (i = 0; i < count; i++)
 		page_table_entry_set(entry + i, ENTRY_IS_INVAL);
 }
-
 
 static struct kbase_mmu_mode const lpae_mode = {
 	.update = mmu_update,

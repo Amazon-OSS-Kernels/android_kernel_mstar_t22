@@ -33,6 +33,8 @@
 #include <linux/version.h>
 #include <linux/ratelimit.h>
 
+#include <linux/sched.h>
+
 #include <mali_kbase_jm.h>
 #include <mali_kbase_hwaccess_jm.h>
 #include <mali_kbase_tlstream.h>
@@ -247,8 +249,8 @@ static int kbase_jd_pre_external_resources(struct kbase_jd_atom *katom, const st
 #endif /* CONFIG_MALI_DMA_FENCE */
 
 	if (copy_from_user(input_extres,
-				get_compat_pointer(katom->kctx, user_atom->extres_list),
-				sizeof(*input_extres) * katom->nr_extres) != 0) {
+		get_compat_pointer(katom->kctx, user_atom->extres_list),
+		sizeof(*input_extres) * katom->nr_extres) != 0) {
 		err = -EINVAL;
 		goto failed_input_copy;
 	}
@@ -263,8 +265,7 @@ static int kbase_jd_pre_external_resources(struct kbase_jd_atom *katom, const st
 		struct kbase_va_region *reg;
 		bool exclusive;
 
-		exclusive = (user_res->ext_resource & BASE_EXT_RES_ACCESS_EXCLUSIVE)
-			? true : false;
+		exclusive = (user_res->ext_resource & BASE_EXT_RES_ACCESS_EXCLUSIVE)? true : false;
 		reg = kbase_region_tracker_find_region_enclosing_address(
 				katom->kctx,
 				user_res->ext_resource & ~BASE_EXT_RES_ACCESS_EXCLUSIVE);
@@ -294,6 +295,7 @@ static int kbase_jd_pre_external_resources(struct kbase_jd_atom *katom, const st
 								exclusive);
 		}
 #endif /* CONFIG_MALI_DMA_FENCE */
+
 		katom->extres[res_no] = reg;
 	}
 	/* successfully parsed the extres array */
@@ -318,7 +320,7 @@ static int kbase_jd_pre_external_resources(struct kbase_jd_atom *katom, const st
 	}
 #endif /* CONFIG_MALI_DMA_FENCE */
 
-	/* Free the buffer holding data from userspace */	
+	/* Free the buffer holding data from userspace */
 	kfree(input_extres);
 
 	/* all done OK */
@@ -341,7 +343,6 @@ failed_dma_fence_setup:
 	 */
 	while (res_no-- > 0) {
 		struct kbase_va_region *reg = katom->extres[res_no];
-
 		kbase_unmap_external_resource(katom->kctx, reg);
 	}
 	kbase_gpu_vm_unlock(katom->kctx);
@@ -1108,6 +1109,12 @@ int kbase_jd_submit(struct kbase_context *kctx,
 		return -EINVAL;
 	}
 
+	if (nr_atoms > BASE_JD_ATOM_COUNT) {
+		dev_dbg(kbdev->dev, "Invalid attempt to submit %u atoms at once for kctx %d_%d",
+				nr_atoms, kctx->tgid, kctx->id);
+		return -EINVAL;
+	}
+
 	/* All atoms submitted in this call have the same flush ID */
 	latest_flush = kbase_backend_get_current_flush_id(kbdev);
 
@@ -1179,6 +1186,12 @@ while (false)
 		kbase_disjoint_event_potential(kbdev);
 
 		mutex_unlock(&jctx->lock);
+		if (fatal_signal_pending(current)) {
+			dev_dbg(kbdev->dev, "Fatal signal pending for kctx %d_%d",
+					kctx->tgid, kctx->id);
+			/* We're being killed so the result code doesn't really matter  */
+			return 0;
+		}
 	}
 
 	if (need_to_try_schedule_context)

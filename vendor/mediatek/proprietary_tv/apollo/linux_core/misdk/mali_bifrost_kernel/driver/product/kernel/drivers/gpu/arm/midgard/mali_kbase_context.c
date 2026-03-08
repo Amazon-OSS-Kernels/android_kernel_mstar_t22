@@ -26,6 +26,15 @@
  * Base kernel context APIs
  */
 
+#include <linux/version.h>
+#if KERNEL_VERSION(4, 11, 0) <= LINUX_VERSION_CODE
+#include <linux/sched/mm.h>
+#include <linux/sched/task.h>
+#else
+#include <linux/sched.h>
+#endif
+
+
 #include <mali_kbase.h>
 #include <mali_midg_regmap.h>
 #include <mali_kbase_mem_linux.h>
@@ -33,10 +42,10 @@
 #include <mali_kbase_ctx_sched.h>
 
 struct kbase_context *
-kbase_create_context(struct kbase_device *kbdev, bool is_compat)
+kbase_create_context(struct kbase_device *kbdev, bool is_compat,struct file *filp)
 {
 	struct kbase_context *kctx;
-	int err;
+	int err = 0;
 	struct page *p;
 
 	KBASE_DEBUG_ASSERT(kbdev != NULL);
@@ -60,12 +69,56 @@ kbase_create_context(struct kbase_device *kbdev, bool is_compat)
 
 	atomic_set(&kctx->setup_complete, 0);
 	atomic_set(&kctx->setup_in_progress, 0);
-	spin_lock_init(&kctx->mm_update_lock);
 	kctx->process_mm = NULL;
+	kctx->task = NULL;
 	atomic_set(&kctx->nonmapped_pages, 0);
 	kctx->slots_pullable = 0;
 	kctx->tgid = current->tgid;
 	kctx->pid = current->pid;
+
+	/* Check if this is a Userspace created context */
+	if (likely(filp)) {
+		struct pid *pid_struct;
+		rcu_read_lock();
+		pid_struct = find_get_pid(kctx->tgid);
+		if (likely(pid_struct)) {
+			struct task_struct *task = pid_task(pid_struct, PIDTYPE_PID);
+			if (likely(task)) {
+				/* Take a reference on the task to avoid slow lookup
+				 * later on from the page allocation loop.
+				 */
+				get_task_struct(task);
+				kctx->task = task;
+			} else {
+				dev_err(kctx->kbdev->dev,
+					"Failed to get task pointer for %s/%d",
+					current->comm, current->pid);
+				err = -ESRCH;
+			}
+			put_pid(pid_struct);
+		} else {
+			dev_err(kctx->kbdev->dev,
+				"Failed to get pid pointer for %s/%d",
+				current->comm, current->pid);
+			err = -ESRCH;
+		}
+		rcu_read_unlock();
+		if (unlikely(err))
+			goto out;
+	}
+	/* Check if this is a Userspace created context */
+	if (likely(filp)) {
+		/* This merely takes a reference on the mm_struct and not on the
+		 * address space and so won't block the freeing of address space
+		 * on process exit.
+		 */
+#if KERNEL_VERSION(4, 11, 0) > LINUX_VERSION_CODE
+		atomic_inc(&current->mm->mm_count);
+#else
+		mmgrab(current->mm);
+#endif
+		kctx->process_mm = current->mm;
+	}
 
 	err = kbase_mem_pool_init(&kctx->mem_pool,
 				  kbdev->mem_pool_max_size_default,
@@ -182,6 +235,11 @@ free_both_pools:
 free_mem_pool:
 	kbase_mem_pool_term(&kctx->mem_pool);
 free_kctx:
+	if (likely(filp))
+	{
+		mmdrop(kctx->process_mm);
+		put_task_struct(kctx->task);
+	}
 	vfree(kctx);
 out:
 	return NULL;
@@ -209,6 +267,7 @@ void kbase_destroy_context(struct kbase_context *kctx)
 	kbdev = kctx->kbdev;
 	KBASE_DEBUG_ASSERT(NULL != kbdev);
 
+
 	KBASE_TRACE_ADD(kbdev, CORE_CTX_DESTROY, kctx, NULL, 0u, 0u);
 
 	/* Ensure the core is powered up for the destroy process */
@@ -217,6 +276,7 @@ void kbase_destroy_context(struct kbase_context *kctx)
 	kbase_pm_context_active(kbdev);
 
 	kbase_mem_pool_mark_dying(&kctx->mem_pool);
+
 
 	kbase_jd_zap_context(kctx);
 
@@ -288,6 +348,15 @@ void kbase_destroy_context(struct kbase_context *kctx)
 	kbase_mem_evictable_deinit(kctx);
 	kbase_mem_pool_term(&kctx->mem_pool);
 	kbase_mem_pool_term(&kctx->lp_mem_pool);
+
+	if (likely(kctx->filp))
+	{
+		if(kctx->process_mm)
+			mmdrop(kctx->process_mm);
+		if(kctx->task)
+			put_task_struct(kctx->task);
+	}
+
 	WARN_ON(atomic_read(&kctx->nonmapped_pages) != 0);
 
 	vfree(kctx);

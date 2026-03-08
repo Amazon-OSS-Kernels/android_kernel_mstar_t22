@@ -266,6 +266,61 @@ static DEFINE_MUTEX(tl_reader_lock);
 /* Timeline stream event queue. */
 static DECLARE_WAIT_QUEUE_HEAD(tl_event_queue);
 
+
+#ifndef MALI_STRIP_KBASE_DEVELOPMENT
+/* Development builds need to test instrumentation and enable unprivileged
+ * processes to acquire timeline streams, in order to avoid complications
+ * with configurations across multiple platforms and systems.
+ *
+ * Release builds, instead, shall deny access to unprivileged processes
+ * because there are no use cases where they are allowed to acquire timeline
+ * streams, unless they're given special permissions by a privileged process.
+ */
+static int kbase_unprivileged_global_profiling = 1;
+#else
+static int kbase_unprivileged_global_profiling;
+#endif
+
+/**
+ * kbase_unprivileged_global_profiling_set - set permissions for unprivileged processes
+ *
+ * @val: String containing value to set. Only strings representing positive
+ *       integers are accepted as valid; any non-positive integer (including 0)
+ *       is rejected.
+ * @kp: Module parameter associated with this method.
+ *
+ * This method can only be used to enable permissions for unprivileged processes,
+ * if they are disabled: for this reason, the only values which are accepted are
+ * strings representing positive integers. Since it's impossible to disable
+ * permissions once they're set, any integer which is non-positive is rejected,
+ * including 0.
+ *
+ * Return: 0 if success, otherwise error code.
+ */
+static int kbase_unprivileged_global_profiling_set(const char *val, const struct kernel_param *kp)
+{
+	int new_val;
+	int ret = kstrtoint(val, 0, &new_val);
+
+	if (ret == 0) {
+		if (new_val < 1)
+			return -EINVAL;
+
+		kbase_unprivileged_global_profiling = 1;
+	}
+
+	return ret;
+}
+
+static const struct kernel_param_ops kbase_global_unprivileged_profiling_ops = {
+	.get = param_get_int,
+	.set = kbase_unprivileged_global_profiling_set,
+};
+
+module_param_cb(kbase_unprivileged_global_profiling, &kbase_global_unprivileged_profiling_ops,
+		&kbase_unprivileged_global_profiling, 0600);
+
+
 /* The timeline stream file operations functions. */
 static ssize_t kbasep_tlstream_read(
 		struct file *filp,
@@ -274,6 +329,16 @@ static ssize_t kbasep_tlstream_read(
 		loff_t      *f_pos);
 static unsigned int kbasep_tlstream_poll(struct file *filp, poll_table *wait);
 static int kbasep_tlstream_release(struct inode *inode, struct file *filp);
+
+bool timeline_is_permitted(void)
+{
+#if KERNEL_VERSION(5, 8, 0) <= LINUX_VERSION_CODE
+	return kbase_unprivileged_global_profiling || perfmon_capable();
+#else
+	return kbase_unprivileged_global_profiling || capable(CAP_SYS_ADMIN);
+#endif
+}
+
 
 /* The timeline stream file operations structure. */
 static const struct file_operations kbasep_tlstream_fops = {
@@ -1463,6 +1528,9 @@ int kbase_tlstream_acquire(struct kbase_context *kctx, u32 flags)
 {
 	int ret;
 	u32 tlstream_enabled = TLSTREAM_ENABLED | flags;
+
+	if (!timeline_is_permitted())
+		return -EPERM;
 
 	if (0 == atomic_cmpxchg(&kbase_tlstream_enabled, 0, tlstream_enabled)) {
 		int rcode;

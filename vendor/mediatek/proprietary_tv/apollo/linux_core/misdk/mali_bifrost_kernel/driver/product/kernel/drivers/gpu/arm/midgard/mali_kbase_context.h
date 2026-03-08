@@ -35,7 +35,7 @@
  * Return: new kbase context
  */
 struct kbase_context *
-kbase_create_context(struct kbase_device *kbdev, bool is_compat);
+kbase_create_context(struct kbase_device *kbdev, bool is_compat,struct file *filp);
 
 /**
  * kbase_destroy_context - Destroy a kernel base context.

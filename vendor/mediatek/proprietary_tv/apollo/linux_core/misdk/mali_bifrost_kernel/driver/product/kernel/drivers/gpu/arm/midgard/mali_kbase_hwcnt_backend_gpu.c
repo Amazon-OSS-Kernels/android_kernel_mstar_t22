@@ -348,7 +348,7 @@ static int kbasep_hwcnt_backend_gpu_create(
 
 	backend->info = info;
 
-	backend->kctx = kbase_create_context(kbdev, true);
+	backend->kctx = kbase_create_context(kbdev, true,NULL);
 	if (!backend->kctx)
 		goto alloc_error;
 
