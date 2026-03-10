@@ -245,6 +245,10 @@ config SYSVIPC
 	  section 6.4 of the Linux Programmer's Guide, available from
 	  <http://www.tldp.org/guides.html>.
 
+config DATA_SEPARATION
+        bool "data separation"
+        default n
+
 config SYSVIPC_SYSCTL
 	bool
 	depends on SYSVIPC
@@ -1184,6 +1188,10 @@ config CGROUP_DEBUG
 	  debugging information about the cgroups framework.
 
 	  Say N.
+
+config SOCK_CGROUP_DATA
+	bool
+	default n
 
 endif # CGROUPS
 
@@ -2128,7 +2136,7 @@ endif # MODULES
 
 config MODULES_TREE_LOOKUP
 	def_bool y
-	depends on PERF_EVENTS || TRACING
+	depends on PERF_EVENTS || TRACING || CFI_CLANG
 
 config INIT_ALL_POSSIBLE
 	bool
