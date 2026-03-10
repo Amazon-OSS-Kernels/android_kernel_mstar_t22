@@ -501,7 +501,6 @@ out:
 	return 0;
 }
 
-
 const struct address_space_operations squashfs_aops = {
 	.readpage = squashfs_readpage
 };

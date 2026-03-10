@@ -28,7 +28,11 @@
 #define WARNING(s, args...)	pr_warn("SQUASHFS: "s, ## args)
 
 /* block.c */
+extern int squashfs_init_read_wq(void);
+extern void squashfs_destroy_read_wq(void);
 extern int squashfs_read_data(struct super_block *, u64, int, u64 *,
+				struct squashfs_page_actor *);
+extern int squashfs_read_data_async(struct super_block *, u64, int, u64 *,
 				struct squashfs_page_actor *);
 
 /* cache.c */
@@ -70,7 +74,7 @@ extern __le64 *squashfs_read_fragment_index_table(struct super_block *,
 void squashfs_copy_cache(struct page *, struct squashfs_cache_entry *, int,
 				int);
 
-/* file_xxx.c */
+/* file_direct.c */
 extern int squashfs_readpage_block(struct page *, u64, int);
 
 /* id.c */
