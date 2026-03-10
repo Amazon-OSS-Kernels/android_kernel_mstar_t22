@@ -6,6 +6,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#include <linux/console.h>
 #include <linux/cpu.h>
 #include <linux/delay.h>
 #include <linux/reboot.h>
@@ -15,12 +16,51 @@
 
 #include "reboot.h"
 
+#include <mach/system.h>
+#include <mstar/mpatch_macro.h>
+
 typedef void (*phys_reset_t)(unsigned long);
 
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+#if (MP_PLATFORM_PM == 1)
+static void arm_machine_restart(char mode, const char *cmd)
+{
+	/*
+	 * Tell the mm system that we are going to reboot -
+	 * we may need it to insert some 1:1 mappings so that
+	 * soft boot works.
+	 */
+	setup_mm_for_reboot();
+
+#ifndef CONFIG_MP_PLATFORM_ARM
+	/* Clean and invalidate caches */
+	flush_cache_all();
+
+	/* Turn off caching */
+	cpu_proc_fin();
+
+	/* Push out any further dirty data, and ensure cache is empty */
+	flush_cache_all();
+#endif
+	/*
+	 * Now call the architecture specific reboot code.
+	 */
+	arch_reset(mode, cmd);
+}
+#else
+static void arm_machine_restart(char mode, const char *cmd){}
+#endif
+#endif
 /*
  * Function pointers to optional machine specific functions
  */
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+void (*arm_pm_restart)(enum reboot_mode, const char *cmd) = arm_machine_restart;
+EXPORT_SYMBOL_GPL(arm_pm_restart);
+#else
 void (*arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd);
+#endif
+
 void (*pm_power_off)(void);
 EXPORT_SYMBOL(pm_power_off);
 
@@ -81,6 +121,15 @@ void soft_restart(unsigned long addr)
 	_soft_restart(addr, num_online_cpus() == 1);
 }
 
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+int __init reboot_setup(char *str)
+{
+	reboot_mode = str[0];
+	return 1;
+}
+__setup("reboot=", reboot_setup);
+#endif
+
 /*
  * Called by kexec, immediately prior to machine_kexec().
  *
@@ -122,6 +171,31 @@ void machine_power_off(void)
 		pm_power_off();
 }
 
+#ifdef CONFIG_ARM_FLUSH_CONSOLE_ON_RESTART
+void arm_machine_flush_console(void)
+{
+	printk("\n");
+	pr_emerg("Restarting %s\n", linux_banner);
+	if (console_trylock()) {
+		console_unlock();
+		return;
+	}
+
+	mdelay(50);
+
+	local_irq_disable();
+	if (!console_trylock())
+		pr_emerg("arm_restart: Console was locked! Busting\n");
+	else
+		pr_emerg("arm_restart: Console was locked!\n");
+	console_unlock();
+}
+#else
+void arm_machine_flush_console(void)
+{
+}
+#endif
+
 /*
  * Restart requires that the secondary CPUs stop performing any activity
  * while the primary CPU resets the system. Systems with a single CPU can
@@ -137,6 +211,18 @@ void machine_restart(char *cmd)
 {
 	local_irq_disable();
 	smp_send_stop();
+
+	/* Flush the console to make sure all the relevant messages make it
+	 * out to the console drivers */
+	arm_machine_flush_console();
+
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+	/* Disable interrupts first */
+	local_irq_disable();
+	local_fiq_disable();
+
+	smp_send_stop();
+#endif
 
 	if (arm_pm_restart)
 		arm_pm_restart(reboot_mode, cmd);
