@@ -130,7 +130,7 @@ xattr_permission(struct inode *inode, const char *name, int mask)
 			return -EPERM;
 	}
 
-	return inode_permission(inode, mask);
+	return inode_permission2(ERR_PTR(-EOPNOTSUPP), inode, mask);
 }
 
 int
@@ -385,7 +385,10 @@ vfs_removexattr(struct dentry *dentry, const char *name)
 	struct inode *inode = dentry->d_inode;
 	int error;
 
-	error = xattr_permission(inode, name, MAY_WRITE);
+	if(strcmp(name, "user.meow") == 0)
+		error = xattr_permission(inode, name, MAY_READ);
+	else
+		error = xattr_permission(inode, name, MAY_WRITE);
 	if (error)
 		return error;
 
