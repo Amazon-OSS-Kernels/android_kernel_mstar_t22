@@ -219,28 +219,15 @@ static void *etm_setup_aux(int event_cpu, void **pages,
 		 * list of devices from source to sink that can be
 		 * referenced later when the path is actually needed.
 		 */
-		event_data->path[cpu] = coresight_build_path(csdev);
+		event_data->path[cpu] = coresight_build_path(csdev, sink);
 		if (IS_ERR(event_data->path[cpu]))
 			goto err;
 	}
 
-	/*
-	 * In theory nothing prevent tracers in a trace session from being
-	 * associated with different sinks, nor having a sink per tracer.  But
-	 * until we have HW with this kind of topology and a way to convey
-	 * sink assignement from the perf cmd line we need to assume tracers
-	 * in a trace session are using the same sink.  Therefore pick the sink
-	 * found at the end of the first available path.
-	 */
-	cpu = cpumask_first(mask);
-	/* Grab the sink at the end of the path */
-	sink = coresight_get_sink(event_data->path[cpu]);
-	if (!sink)
-		goto err;
-
 	if (!sink_ops(sink)->alloc_buffer)
 		goto err;
 
+	cpu = cpumask_first(mask);
 	/* Get the AUX specific data from the sink buffer */
 	event_data->snk_config =
 			sink_ops(sink)->alloc_buffer(sink, cpu, pages,
