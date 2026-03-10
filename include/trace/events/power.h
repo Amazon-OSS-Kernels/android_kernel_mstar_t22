@@ -147,11 +147,89 @@ DEFINE_EVENT(cpu, cpu_frequency,
 	TP_ARGS(frequency, cpu_id)
 );
 
-TRACE_EVENT(device_pm_callback_start,
+TRACE_EVENT(cpu_frequency_limits,
+
+	TP_PROTO(unsigned int max_freq, unsigned int min_freq,
+		unsigned int cpu_id),
+
+	TP_ARGS(max_freq, min_freq, cpu_id),
+
+	TP_STRUCT__entry(
+		__field(	u32,		min_freq	)
+		__field(	u32,		max_freq	)
+		__field(	u32,		cpu_id		)
+	),
+
+	TP_fast_assign(
+		__entry->min_freq = min_freq;
+		__entry->max_freq = max_freq;
+		__entry->cpu_id = cpu_id;
+	),
+
+	TP_printk("min=%lu max=%lu cpu_id=%lu",
+		  (unsigned long)__entry->min_freq,
+		  (unsigned long)__entry->max_freq,
+		  (unsigned long)__entry->cpu_id)
+);
+
+DEFINE_EVENT(cpu, cpu_capacity,
+
+	TP_PROTO(unsigned int capacity, unsigned int cpu_id),
+
+	TP_ARGS(capacity, cpu_id)
+);
+
+TRACE_EVENT(utpa_pm_callback_start,
+
+		TP_PROTO(const char *name, int order, int event),
+
+		TP_ARGS(name, order, event),
+
+		TP_STRUCT__entry(
+		__string(msg, name)
+		__field(int, order)
+		__field(int, event)
+		),
+
+		TP_fast_assign(
+		__assign_str(msg, name);
+		__entry->order = order;
+		__entry->event = event;
+		),
+
+		TP_printk("%s UTPA.%d, parent: platform, bus [%s]",
+		__get_str(msg), __entry->order, pm_verb_symbolic(__entry->event))
+);
+
+TRACE_EVENT(utpa_pm_callback_end,
+
+		TP_PROTO(const char *name, int order, int error),
+
+		TP_ARGS(name, order, error),
+
+		TP_STRUCT__entry(
+		__string(msg, name)
+		__field(int, order)
+		__field(int, error)
+		),
+
+		TP_fast_assign(
+		__assign_str(msg, name);
+		__entry->order = order;
+		__entry->error = error;
+		),
+
+		TP_printk("%s UTPA.%d, err=%d",
+				__get_str(msg), __entry->order, __entry->error)
+);
+
+TRACE_EVENT_CONDITION(device_pm_callback_start,
 
 	TP_PROTO(struct device *dev, const char *pm_ops, int event),
 
 	TP_ARGS(dev, pm_ops, event),
+
+	TP_CONDITION(strcmp(dev_name(dev), "Mstar-utopia2k-str")),
 
 	TP_STRUCT__entry(
 		__string(device, dev_name(dev))
@@ -175,11 +253,13 @@ TRACE_EVENT(device_pm_callback_start,
 		pm_verb_symbolic(__entry->event))
 );
 
-TRACE_EVENT(device_pm_callback_end,
+TRACE_EVENT_CONDITION(device_pm_callback_end,
 
 	TP_PROTO(struct device *dev, int error),
 
 	TP_ARGS(dev, error),
+
+	TP_CONDITION(strcmp(dev_name(dev), "Mstar-utopia2k-str")),
 
 	TP_STRUCT__entry(
 		__string(device, dev_name(dev))
@@ -298,6 +378,25 @@ DEFINE_EVENT(clock, clock_set_rate,
 	TP_PROTO(const char *name, unsigned int state, unsigned int cpu_id),
 
 	TP_ARGS(name, state, cpu_id)
+);
+
+TRACE_EVENT(clock_set_parent,
+
+	TP_PROTO(const char *name, const char *parent_name),
+
+	TP_ARGS(name, parent_name),
+
+	TP_STRUCT__entry(
+		__string(       name,           name            )
+		__string(       parent_name,    parent_name     )
+	),
+
+	TP_fast_assign(
+		__assign_str(name, name);
+		__assign_str(parent_name, parent_name);
+	),
+
+	TP_printk("%s parent=%s", __get_str(name), __get_str(parent_name))
 );
 
 /*
