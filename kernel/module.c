@@ -63,9 +63,11 @@
 #include <linux/dynamic_debug.h>
 #include <uapi/linux/module.h>
 #include "module-internal.h"
+#include <mstar/mpatch_macro.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/module.h>
+
 
 #ifndef ARCH_SHF_SMALL
 #define ARCH_SHF_SMALL 0
@@ -84,6 +86,13 @@
 
 /* If this is set, the section belongs in the init part of the module */
 #define INIT_OFFSET_MASK (1UL << (BITS_PER_LONG-1))
+
+#if (MP_DEBUG_TOOL_OPROFILE == 1)
+#ifdef CONFIG_ADVANCE_OPROFILE
+/* Protects module list */
+static DEFINE_SPINLOCK(modlist_lock);
+#endif
+#endif /*MP_DEBUG_TOOL_OPROFILE*/
 
 /*
  * Mutex protects:
@@ -2099,6 +2108,8 @@ void __weak module_arch_freeing_init(struct module *mod)
 {
 }
 
+static void cfi_cleanup(struct module *mod);
+
 /* Free a module, remove from lists, etc. */
 static void free_module(struct module *mod)
 {
@@ -2140,6 +2151,10 @@ static void free_module(struct module *mod)
 
 	/* This may be empty, but that's OK */
 	disable_ro_nx(&mod->init_layout);
+
+	/* Clean up CFI for the module. */
+	cfi_cleanup(mod);
+
 	module_arch_freeing_init(mod);
 	module_memfree(mod->init_layout.base);
 	kfree(mod->args);
@@ -3321,6 +3336,8 @@ int __weak module_finalize(const Elf_Ehdr *hdr,
 	return 0;
 }
 
+static void cfi_init(struct module *mod);
+
 static int post_relocation(struct module *mod, const struct load_info *info)
 {
 	/* Sort exception table now relocations are done. */
@@ -3332,6 +3349,9 @@ static int post_relocation(struct module *mod, const struct load_info *info)
 
 	/* Setup kallsyms-specific fields. */
 	add_kallsyms(mod, info);
+
+	/* Setup CFI for the module. */
+	cfi_init(mod);
 
 	/* Arch-specific module finalizing. */
 	return module_finalize(info->hdr, info->sechdrs, mod);
@@ -4067,6 +4087,22 @@ int module_kallsyms_on_each_symbol(int (*fn)(void *, const char *,
 }
 #endif /* CONFIG_KALLSYMS */
 
+static void cfi_init(struct module *mod)
+{
+#ifdef CONFIG_CFI_CLANG
+	mod->cfi_check =
+		(cfi_check_fn)mod_find_symname(mod, CFI_CHECK_FN_NAME);
+	cfi_module_add(mod, module_addr_min, module_addr_max);
+#endif
+}
+
+static void cfi_cleanup(struct module *mod)
+{
+#ifdef CONFIG_CFI_CLANG
+	cfi_module_remove(mod, module_addr_min, module_addr_max);
+#endif
+}
+
 static char *module_flags(struct module *mod, char *buf)
 {
 	int bx = 0;
@@ -4277,6 +4313,31 @@ struct module *__module_text_address(unsigned long addr)
 	return mod;
 }
 EXPORT_SYMBOL_GPL(__module_text_address);
+
+#if (MP_DEBUG_TOOL_OPROFILE == 1)
+#ifdef CONFIG_ADVANCE_OPROFILE
+/* Check Is this a valid module address? and return module if available */
+struct module *aop_get_module_struct(unsigned long addr)
+{
+	unsigned long flags;
+	struct module *mod;
+
+	spin_lock_irqsave(&modlist_lock, flags);
+
+	list_for_each_entry(mod, &modules, list) {
+		if (within(addr, mod->init_layout.base, mod->init_layout.text_size)
+				|| within(addr, mod->core_layout.base, mod->core_layout.text_size)) {
+			spin_unlock_irqrestore(&modlist_lock, flags);
+			return mod;
+		}
+	}
+
+	spin_unlock_irqrestore(&modlist_lock, flags);
+
+	return NULL;
+}
+#endif /* CONFIG_ADVANCE_OPROFILE */
+#endif /*MP_DEBUG_TOOL_OPROFILE*/
 
 /* Don't grab lock, we're oopsing. */
 void print_modules(void)

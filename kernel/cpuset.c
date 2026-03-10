@@ -100,6 +100,7 @@ struct cpuset {
 
 	/* user-configured CPUs and Memory Nodes allow to tasks */
 	cpumask_var_t cpus_allowed;
+	cpumask_var_t cpus_requested;
 	nodemask_t mems_allowed;
 
 	/* effective CPUs and Memory Nodes allow to tasks */
@@ -139,7 +140,11 @@ static inline struct cpuset *css_cs(struct cgroup_subsys_state *css)
 }
 
 /* Retrieve the cpuset for a task */
+#if defined(CONFIG_DEFAULT_USE_ENERGY_AWARE) && defined(CONFIG_MP_EAS_BOOST_PERFORMANCE)
+inline struct cpuset *task_cs(struct task_struct *task)
+#else
 static inline struct cpuset *task_cs(struct task_struct *task)
+#endif
 {
 	return css_cs(task_css(task, cpuset_cgrp_id));
 }
@@ -399,7 +404,7 @@ static void cpuset_update_task_spread_flag(struct cpuset *cs,
 
 static int is_cpuset_subset(const struct cpuset *p, const struct cpuset *q)
 {
-	return	cpumask_subset(p->cpus_allowed, q->cpus_allowed) &&
+	return	cpumask_subset(p->cpus_requested, q->cpus_requested) &&
 		nodes_subset(p->mems_allowed, q->mems_allowed) &&
 		is_cpu_exclusive(p) <= is_cpu_exclusive(q) &&
 		is_mem_exclusive(p) <= is_mem_exclusive(q);
@@ -499,7 +504,7 @@ static int validate_change(struct cpuset *cur, struct cpuset *trial)
 	cpuset_for_each_child(c, css, par) {
 		if ((is_cpu_exclusive(trial) || is_cpu_exclusive(c)) &&
 		    c != cur &&
-		    cpumask_intersects(trial->cpus_allowed, c->cpus_allowed))
+		    cpumask_intersects(trial->cpus_requested, c->cpus_requested))
 			goto out;
 		if ((is_mem_exclusive(trial) || is_mem_exclusive(c)) &&
 		    c != cur &&
@@ -847,6 +852,9 @@ void rebuild_sched_domains(void)
 	mutex_unlock(&cpuset_mutex);
 }
 
+#if defined(CONFIG_DEFAULT_USE_ENERGY_AWARE) && defined(CONFIG_MP_EAS_BOOST_PERFORMANCE)
+dyn_cpuset_t fg_cpuset, topapp_cpuset;
+#endif
 /**
  * update_tasks_cpumask - Update the cpumasks of tasks in the cpuset.
  * @cs: the cpuset in which each task's cpus_allowed mask needs to be changed
@@ -859,6 +867,39 @@ static void update_tasks_cpumask(struct cpuset *cs)
 {
 	struct css_task_iter it;
 	struct task_struct *task;
+#if defined(CONFIG_DEFAULT_USE_ENERGY_AWARE) && defined(CONFIG_MP_EAS_BOOST_PERFORMANCE)
+    struct kernfs_node *kn;
+
+    kn = cs->css.cgroup->kn;
+    if (kn->parent) {
+        //printk("%s\n", kn->name);
+        if (!strncmp(kn->name, "foreground", sizeof("foreground"))) {
+            fg_cpuset.ptr = cs;
+            cpumask_copy(fg_cpuset.org_cpus_allowed, cs->effective_cpus);
+            cpumask_setall(fg_cpuset.new_cpus_allowed);
+            fg_cpuset.org_nr_cpus_allowed = cpumask_weight(cs->effective_cpus);
+            fg_cpuset.new_nr_cpus_allowed = cpumask_weight(fg_cpuset.new_cpus_allowed);
+            fg_cpuset.imbalance = 0;
+
+            /*printk("cs:0x%x, cpu=0x%x, eff=0x%x, org=0x%x(%d),new=0x%x(%d)\n", cs,
+                *((cs->cpus_allowed)->bits), *((cs->effective_cpus)->bits),
+                *((fg_cpuset.org_cpus_allowed)->bits), fg_cpuset.org_nr_cpus_allowed ,
+                *((fg_cpuset.new_cpus_allowed)->bits), fg_cpuset.new_nr_cpus_allowed);*/
+       } else if (!strncmp(kn->name, "top-app", sizeof("top-app"))) {
+            topapp_cpuset.ptr = cs;
+            cpumask_copy(topapp_cpuset.org_cpus_allowed, cs->effective_cpus);
+            cpumask_setall(topapp_cpuset.new_cpus_allowed);
+            topapp_cpuset.org_nr_cpus_allowed = cpumask_weight(cs->effective_cpus);
+            topapp_cpuset.new_nr_cpus_allowed = cpumask_weight(topapp_cpuset.new_cpus_allowed);
+            topapp_cpuset.imbalance = 0;
+
+            /*printk("cs:0x%x, cpu=0x%x, eff=0x%x, org=0x%x(%d),new=0x%x(%d)\n", cs,
+                *((cs->cpus_allowed)->bits), *((cs->effective_cpus)->bits),
+                *((topapp_cpuset.org_cpus_allowed)->bits), topapp_cpuset.org_nr_cpus_allowed ,
+                *((topapp_cpuset.new_cpus_allowed)->bits), topapp_cpuset.new_nr_cpus_allowed);*/
+       }
+    }
+#endif
 
 	css_task_iter_start(&cs->css, &it);
 	while ((task = css_task_iter_next(&it)))
@@ -958,17 +999,18 @@ static int update_cpumask(struct cpuset *cs, struct cpuset *trialcs,
 	if (!*buf) {
 		cpumask_clear(trialcs->cpus_allowed);
 	} else {
-		retval = cpulist_parse(buf, trialcs->cpus_allowed);
+		retval = cpulist_parse(buf, trialcs->cpus_requested);
 		if (retval < 0)
 			return retval;
 
-		if (!cpumask_subset(trialcs->cpus_allowed,
-				    top_cpuset.cpus_allowed))
+		if (!cpumask_subset(trialcs->cpus_requested, cpu_present_mask))
 			return -EINVAL;
+
+		cpumask_and(trialcs->cpus_allowed, trialcs->cpus_requested, cpu_active_mask);
 	}
 
 	/* Nothing to do if the cpus didn't change */
-	if (cpumask_equal(cs->cpus_allowed, trialcs->cpus_allowed))
+	if (cpumask_equal(cs->cpus_requested, trialcs->cpus_requested))
 		return 0;
 
 	retval = validate_change(cs, trialcs);
@@ -977,6 +1019,7 @@ static int update_cpumask(struct cpuset *cs, struct cpuset *trialcs,
 
 	spin_lock_irq(&callback_lock);
 	cpumask_copy(cs->cpus_allowed, trialcs->cpus_allowed);
+	cpumask_copy(cs->cpus_requested, trialcs->cpus_requested);
 	spin_unlock_irq(&callback_lock);
 
 	/* use trialcs->cpus_allowed as a temp variable */
@@ -1456,7 +1499,10 @@ static int fmeter_getrate(struct fmeter *fmp)
 }
 
 static struct cpuset *cpuset_attach_old_cs;
-
+#if defined(CONFIG_MP_BENCHMARK_LAUNCH_BOOST)
+extern unsigned long launch_boost_enable;
+extern void launch_boost_check(void);
+#endif
 /* Called by cgroups to determine if a cpuset is usable; cpuset_mutex held */
 static int cpuset_can_attach(struct cgroup_taskset *tset)
 {
@@ -1484,6 +1530,12 @@ static int cpuset_can_attach(struct cgroup_taskset *tset)
 		ret = security_task_setscheduler(task);
 		if (ret)
 			goto out_unlock;
+#if defined(CONFIG_MP_BENCHMARK_LAUNCH_BOOST)
+                if (task->pid == task->tgid && strstr(css->cgroup->kn->name,"top") && !strstr(task->comm,"droid.launcher") && !strstr(task->comm,"android.tvlauncher") ) {
+                    launch_boost_enable = 1;
+                    launch_boost_check();
+                }
+#endif
 	}
 
 	/*
@@ -1761,7 +1813,7 @@ static int cpuset_common_seq_show(struct seq_file *sf, void *v)
 
 	switch (type) {
 	case FILE_CPULIST:
-		seq_printf(sf, "%*pbl\n", cpumask_pr_args(cs->cpus_allowed));
+		seq_printf(sf, "%*pbl\n", cpumask_pr_args(cs->cpus_requested));
 		break;
 	case FILE_MEMLIST:
 		seq_printf(sf, "%*pbl\n", nodemask_pr_args(&cs->mems_allowed));
@@ -1951,11 +2003,14 @@ cpuset_css_alloc(struct cgroup_subsys_state *parent_css)
 		return ERR_PTR(-ENOMEM);
 	if (!alloc_cpumask_var(&cs->cpus_allowed, GFP_KERNEL))
 		goto free_cs;
+	if (!alloc_cpumask_var(&cs->cpus_requested, GFP_KERNEL))
+		goto free_allowed;
 	if (!alloc_cpumask_var(&cs->effective_cpus, GFP_KERNEL))
-		goto free_cpus;
+		goto free_requested;
 
 	set_bit(CS_SCHED_LOAD_BALANCE, &cs->flags);
 	cpumask_clear(cs->cpus_allowed);
+	cpumask_clear(cs->cpus_requested);
 	nodes_clear(cs->mems_allowed);
 	cpumask_clear(cs->effective_cpus);
 	nodes_clear(cs->effective_mems);
@@ -1964,7 +2019,9 @@ cpuset_css_alloc(struct cgroup_subsys_state *parent_css)
 
 	return &cs->css;
 
-free_cpus:
+free_requested:
+	free_cpumask_var(cs->cpus_requested);
+free_allowed:
 	free_cpumask_var(cs->cpus_allowed);
 free_cs:
 	kfree(cs);
@@ -2027,6 +2084,7 @@ static int cpuset_css_online(struct cgroup_subsys_state *css)
 	cs->mems_allowed = parent->mems_allowed;
 	cs->effective_mems = parent->mems_allowed;
 	cpumask_copy(cs->cpus_allowed, parent->cpus_allowed);
+	cpumask_copy(cs->cpus_requested, parent->cpus_requested);
 	cpumask_copy(cs->effective_cpus, parent->cpus_allowed);
 	spin_unlock_irq(&callback_lock);
 out_unlock:
@@ -2061,6 +2119,7 @@ static void cpuset_css_free(struct cgroup_subsys_state *css)
 
 	free_cpumask_var(cs->effective_cpus);
 	free_cpumask_var(cs->cpus_allowed);
+	free_cpumask_var(cs->cpus_requested);
 	kfree(cs);
 }
 
@@ -2125,8 +2184,11 @@ int __init cpuset_init(void)
 		BUG();
 	if (!alloc_cpumask_var(&top_cpuset.effective_cpus, GFP_KERNEL))
 		BUG();
+	if (!alloc_cpumask_var(&top_cpuset.cpus_requested, GFP_KERNEL))
+		BUG();
 
 	cpumask_setall(top_cpuset.cpus_allowed);
+	cpumask_setall(top_cpuset.cpus_requested);
 	nodes_setall(top_cpuset.mems_allowed);
 	cpumask_setall(top_cpuset.effective_cpus);
 	nodes_setall(top_cpuset.effective_mems);
@@ -2260,7 +2322,7 @@ retry:
 		goto retry;
 	}
 
-	cpumask_and(&new_cpus, cs->cpus_allowed, parent_cs(cs)->effective_cpus);
+	cpumask_and(&new_cpus, cs->cpus_requested, parent_cs(cs)->effective_cpus);
 	nodes_and(new_mems, cs->mems_allowed, parent_cs(cs)->effective_mems);
 
 	cpus_updated = !cpumask_equal(&new_cpus, cs->effective_cpus);
