@@ -521,7 +521,17 @@ int coresight_enable(struct coresight_device *csdev)
 		goto out;
 	}
 
-	path = coresight_build_path(csdev);
+	/*
+	 * Search for a valid sink for this session but don't reset the
+	 * "enable_sink" flag in sysFS.  Users get to do that explicitly.
+	 */
+	sink = coresight_get_enabled_sink(false);
+	if (!sink) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	path = coresight_build_path(csdev, sink);
 	if (IS_ERR(path)) {
 		pr_err("building path(s) failed\n");
 		ret = PTR_ERR(path);
