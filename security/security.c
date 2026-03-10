@@ -11,6 +11,7 @@
  *	(at your option) any later version.
  */
 
+#include <linux/bpf.h>
 #include <linux/capability.h>
 #include <linux/dcache.h>
 #include <linux/module.h>
@@ -25,6 +26,9 @@
 #include <linux/mount.h>
 #include <linux/personality.h>
 #include <linux/backing-dev.h>
+#ifdef CONFIG_MP_AMAZON_NON_ROOT_SECURE
+#include <linux/white_list.h>
+#endif
 #include <net/flow.h>
 
 #define MAX_LSM_EVM_XATTR	2
@@ -66,7 +70,9 @@ int __init security_init(void)
 	 * Load all the remaining security modules.
 	 */
 	do_security_initcalls();
-
+#ifdef CONFIG_MP_AMAZON_NON_ROOT_SECURE
+	white_list_init ();
+#endif
 	return 0;
 }
 
@@ -131,25 +137,25 @@ int __init security_module_enable(const char *module)
 
 /* Security operations */
 
-int security_binder_set_context_mgr(struct task_struct *mgr)
+int security_binder_set_context_mgr(const struct cred *mgr)
 {
 	return call_int_hook(binder_set_context_mgr, 0, mgr);
 }
 
-int security_binder_transaction(struct task_struct *from,
-				struct task_struct *to)
+int security_binder_transaction(const struct cred *from,
+				const struct cred *to)
 {
 	return call_int_hook(binder_transaction, 0, from, to);
 }
 
-int security_binder_transfer_binder(struct task_struct *from,
-				    struct task_struct *to)
+int security_binder_transfer_binder(const struct cred *from,
+				    const struct cred *to)
 {
 	return call_int_hook(binder_transfer_binder, 0, from, to);
 }
 
-int security_binder_transfer_file(struct task_struct *from,
-				  struct task_struct *to, struct file *file)
+int security_binder_transfer_file(const struct cred *from,
+				  const struct cred *to, struct file *file)
 {
 	return call_int_hook(binder_transfer_file, 0, from, to, file);
 }
@@ -185,13 +191,23 @@ int security_capset(struct cred *new, const struct cred *old,
 int security_capable(const struct cred *cred, struct user_namespace *ns,
 		     int cap)
 {
-	return call_int_hook(capable, 0, cred, ns, cap, SECURITY_CAP_AUDIT);
+	int ret = call_int_hook(capable, 0, cred, ns, cap, SECURITY_CAP_AUDIT);
+#ifdef CONFIG_MP_AMAZON_NON_ROOT_SECURE
+	if (ret != 0 && !is_bypass(cap, current_gid(), current_uid()))
+		ret = 0;
+#endif
+	return ret;
 }
 
 int security_capable_noaudit(const struct cred *cred, struct user_namespace *ns,
 			     int cap)
 {
-	return call_int_hook(capable, 0, cred, ns, cap, SECURITY_CAP_NOAUDIT);
+	int ret = call_int_hook(capable, 0, cred, ns, cap, SECURITY_CAP_NOAUDIT);
+#ifdef CONFIG_MP_AMAZON_NON_ROOT_SECURE
+	if (ret != 0 && !is_bypass(cap, current_gid(), current_uid()))
+		ret = 0;
+#endif
+	return ret;
 }
 
 int security_quotactl(int cmds, int type, int id, struct super_block *sb)
@@ -508,6 +524,7 @@ int security_path_chown(const struct path *path, kuid_t uid, kgid_t gid)
 		return 0;
 	return call_int_hook(path_chown, 0, path, uid, gid);
 }
+EXPORT_SYMBOL(security_path_chown);
 
 int security_path_chroot(const struct path *path)
 {
@@ -1971,4 +1988,20 @@ struct security_hook_heads security_hook_heads = {
 	.audit_rule_free =
 		LIST_HEAD_INIT(security_hook_heads.audit_rule_free),
 #endif /* CONFIG_AUDIT */
+#ifdef CONFIG_BPF_SYSCALL
+	.bpf =
+		LIST_HEAD_INIT(security_hook_heads.bpf),
+	.bpf_map =
+		LIST_HEAD_INIT(security_hook_heads.bpf_map),
+	.bpf_prog =
+		LIST_HEAD_INIT(security_hook_heads.bpf_prog),
+	.bpf_map_alloc_security =
+		LIST_HEAD_INIT(security_hook_heads.bpf_map_alloc_security),
+	.bpf_map_free_security =
+		LIST_HEAD_INIT(security_hook_heads.bpf_map_free_security),
+	.bpf_prog_alloc_security =
+		LIST_HEAD_INIT(security_hook_heads.bpf_prog_alloc_security),
+	.bpf_prog_free_security =
+		LIST_HEAD_INIT(security_hook_heads.bpf_prog_free_security),
+#endif /* CONFIG_BPF_SYSCALL */
 };
