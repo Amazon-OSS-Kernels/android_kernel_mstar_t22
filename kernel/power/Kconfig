@@ -1,6 +1,7 @@
 config SUSPEND
 	bool "Suspend to RAM and standby"
 	depends on ARCH_SUSPEND_POSSIBLE
+	select RTC_LIB
 	default y
 	---help---
 	  Allow the system to enter sleep states in which main memory is
@@ -120,6 +121,13 @@ config PM_AUTOSLEEP
 	---help---
 	Allow the kernel to trigger a system transition into a global sleep
 	state automatically whenever there are no active wakeup sources.
+
+config PM_CUST
+	bool "PM CUSTOMIZATION"
+	depends on PM_AUTOSLEEP
+	default n
+	---help---
+	Add customization to kernel power manager.
 
 config PM_WAKELOCKS
 	bool "User space wakeup sources interface"
