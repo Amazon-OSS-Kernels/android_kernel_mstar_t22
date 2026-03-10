@@ -245,6 +245,10 @@ config SYSVIPC
 	  section 6.4 of the Linux Programmer's Guide, available from
 	  <http://www.tldp.org/guides.html>.
 
+config DATA_SEPARATION
+        bool "data separation"
+        default n
+
 config SYSVIPC_SYSCTL
 	bool
 	depends on SYSVIPC
@@ -399,6 +403,15 @@ config IRQ_TIME_ACCOUNTING
 	  small performance impact.
 
 	  If in doubt, say N here.
+
+config SCHED_WALT
+        bool "Support window based load tracking"
+        depends on SMP
+        help
+        This feature will allow the scheduler to maintain a tunable window
+	based set of metrics for tasks and runqueues. These metrics can be
+	used to guide task placement as well as task frequency requirements
+	for cpufreq governors.
 
 config BSD_PROCESS_ACCT
 	bool "BSD Process Accounting"
@@ -1162,6 +1175,10 @@ config CGROUP_DEBUG
 	  debugging information about the cgroups framework.
 
 	  Say N.
+
+config SOCK_CGROUP_DATA
+	bool
+	default n
 
 endif # CGROUPS
 
@@ -2106,7 +2123,7 @@ endif # MODULES
 
 config MODULES_TREE_LOOKUP
 	def_bool y
-	depends on PERF_EVENTS || TRACING
+	depends on PERF_EVENTS || TRACING || CFI_CLANG
 
 config INIT_ALL_POSSIBLE
 	bool
