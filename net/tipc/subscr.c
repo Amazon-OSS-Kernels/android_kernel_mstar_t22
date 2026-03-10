@@ -141,7 +141,6 @@ void tipc_subscrp_report_overlap(struct tipc_subscription *sub, u32 found_lower,
 static void tipc_subscrp_timeout(unsigned long data)
 {
 	struct tipc_subscription *sub = (struct tipc_subscription *)data;
-	struct tipc_subscriber *subscriber = sub->subscriber;
 
 	spin_lock_bh(&subscriber->lock);
 	tipc_nametbl_unsubscribe(sub);

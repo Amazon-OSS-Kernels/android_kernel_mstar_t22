@@ -27,6 +27,7 @@
 #include <linux/debugfs.h>
 #include <linux/serial_core.h>
 #include <linux/sysfs.h>
+#include <mstar/mpatch_macro.h>
 
 #include <asm/setup.h>  /* for COMMAND_LINE_SIZE */
 #include <asm/page.h>
@@ -899,14 +900,33 @@ static void __early_init_dt_declare_initrd(unsigned long start,
  * early_init_dt_check_for_initrd - Decode initrd location from flat tree
  * @node: reference to node containing initrd location ('chosen')
  */
+#if (MP_PLATFORM_ARM_64bit_PORTING == 1 || MP_PLATFORM_ARM_32bit_PORTING == 1)
+extern unsigned long __ramdisk_start, __ramdisk_len;
+#if (MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB == 1)
+extern unsigned long __cmdline;
+char* cmd_ptr;
+#endif
+#endif
 static void __init early_init_dt_check_for_initrd(unsigned long node)
 {
 	u64 start, end;
 	int len;
 	const __be32 *prop;
+#if (MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB == 1)
+	cmd_ptr = (char *)__cmdline;
+#endif
 
 	pr_debug("Looking for initrd properties... ");
+#if (MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB == 1)
+	/*ramdisk porting problem,move patch from 3.10.40(Perforce #cl 1038050)*/
+	printk("Looking for initrd properties... ");
+	printk("initrd_start = 0x%lx  initrd_end = 0x%lx\n", __ramdisk_start,__ramdisk_start+__ramdisk_len);
 
+	initrd_start = (unsigned long)__va(__ramdisk_start);
+	initrd_end = (unsigned long)__va(__ramdisk_start+__ramdisk_len);
+	initrd_below_start_ok = 1;
+
+#else
 	prop = of_get_flat_dt_prop(node, "linux,initrd-start", &len);
 	if (!prop)
 		return;
@@ -918,9 +938,11 @@ static void __init early_init_dt_check_for_initrd(unsigned long node)
 	end = of_read_number(prop, len/4);
 
 	__early_init_dt_declare_initrd(start, end);
-
-	pr_debug("initrd_start=0x%llx  initrd_end=0x%llx\n",
+#endif
+	pr_debug("initrd_start = 0x%llx  initrd_end = 0x%llx\n",
 		 (unsigned long long)start, (unsigned long long)end);
+	printk("initrd_start = 0x%llx  initrd_end = 0x%llx\n",
+		 (unsigned long long)initrd_start, (unsigned long long)initrd_end);
 }
 #else
 static inline void early_init_dt_check_for_initrd(unsigned long node)
@@ -1051,6 +1073,21 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 
 		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
 		size = dt_mem_next_cell(dt_root_size_cells, &reg);
+#if (MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB == 0)
+		if(lx_num == 0){
+			linux_memory_address = base;
+			linux_memory_length = size;
+		}
+		else if(lx_num == 1){
+			linux_memory2_address = base;
+			linux_memory2_length = size;
+		}
+		else if(lx_num == 2){
+			linux_memory3_address = base;
+                        linux_memory3_length = size;
+		}
+		lx_num ++;
+#endif
 
 		if (size == 0)
 			continue;
@@ -1063,42 +1100,66 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 	return 0;
 }
 
+/*
+ * Convert configs to something easy to use in C code
+ */
+#if defined(CONFIG_CMDLINE_FORCE)
+static const int overwrite_incoming_cmdline = 1;
+static const int read_dt_cmdline;
+static const int concat_cmdline;
+#elif defined(CONFIG_CMDLINE_EXTEND)
+static const int overwrite_incoming_cmdline;
+static const int read_dt_cmdline = 1;
+static const int concat_cmdline = 1;
+#else /* CMDLINE_FROM_BOOTLOADER */
+static const int overwrite_incoming_cmdline;
+static const int read_dt_cmdline = 1;
+static const int concat_cmdline;
+#endif
+
+#ifdef CONFIG_CMDLINE
+static const char *config_cmdline = CONFIG_CMDLINE;
+#else
+static const char *config_cmdline = "";
+#endif
+
 int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 				     int depth, void *data)
 {
-	int l;
-	const char *p;
+	int l = 0;
+	const char *p = NULL;
+	char *cmdline = data;
 
 	pr_debug("search \"chosen\", depth: %d, uname: %s\n", depth, uname);
 
-	if (depth != 1 || !data ||
+	if (depth != 1 || !cmdline ||
 	    (strcmp(uname, "chosen") != 0 && strcmp(uname, "chosen@0") != 0))
 		return 0;
 
 	early_init_dt_check_for_initrd(node);
 
-	/* Retrieve command line */
-	p = of_get_flat_dt_prop(node, "bootargs", &l);
-	if (p != NULL && l > 0)
-		strlcpy(data, p, min((int)l, COMMAND_LINE_SIZE));
+	/* Put CONFIG_CMDLINE in if forced or if data had nothing in it to start */
+	if (overwrite_incoming_cmdline || !cmdline[0])
+		strlcpy(cmdline, config_cmdline, COMMAND_LINE_SIZE);
 
-	/*
-	 * CONFIG_CMDLINE is meant to be a default in case nothing else
-	 * managed to set the command line, unless CONFIG_CMDLINE_FORCE
-	 * is set in which case we override whatever was found earlier.
-	 */
-#ifdef CONFIG_CMDLINE
-#if defined(CONFIG_CMDLINE_EXTEND)
-	strlcat(data, " ", COMMAND_LINE_SIZE);
-	strlcat(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
-#elif defined(CONFIG_CMDLINE_FORCE)
-	strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
-#else
-	/* No arguments from boot loader, use kernel's  cmdl*/
-	if (!((char *)data)[0])
-		strlcpy(data, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
-#endif
-#endif /* CONFIG_CMDLINE */
+	/* Retrieve command line unless forcing */
+	if (read_dt_cmdline)
+		p = of_get_flat_dt_prop(node, "bootargs", &l);
+
+	if (p != NULL && l > 0) {
+		if (concat_cmdline) {
+			int cmdline_len;
+			int copy_len;
+			strlcat(cmdline, " ", COMMAND_LINE_SIZE);
+			cmdline_len = strlen(cmdline);
+			copy_len = COMMAND_LINE_SIZE - cmdline_len - 1;
+			copy_len = min((int)l, copy_len);
+			strncpy(cmdline + cmdline_len, p, copy_len);
+			cmdline[cmdline_len + copy_len] = '\0';
+		} else {
+			strlcpy(cmdline, p, min((int)l, COMMAND_LINE_SIZE));
+		}
+	}
 
 	pr_debug("Command line is: %s\n", (char*)data);
 
@@ -1218,7 +1279,9 @@ void __init early_init_dt_scan_nodes(void)
 	of_scan_flat_dt(early_init_dt_scan_root, NULL);
 
 	/* Setup memory, calling early_init_dt_add_memory_arch */
+#if (MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB == 0)
 	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
+#endif
 }
 
 bool __init early_init_dt_scan(void *params)
