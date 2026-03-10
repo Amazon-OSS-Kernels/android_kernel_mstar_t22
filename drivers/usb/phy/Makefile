@@ -1,8 +1,20 @@
 #
 # Makefile for physical layer USB drivers
 #
+
+# compatiblity with mstar
+EXTRA_CFLAGS      += -Idrivers/mstar/usb
+
+# compatiblity with mstar2
+EXTRA_CFLAGS      += -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/usb
+EXTRA_CFLAGS      += -Idrivers/mstar2/include
+EXTRA_CFLAGS      += -Idrivers/mstar2/drv/gpio/
+EXTRA_CFLAGS      += -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/gpio/
+
 obj-$(CONFIG_USB_PHY)			+= phy.o
 obj-$(CONFIG_OF)			+= of.o
+obj-$(CONFIG_USB_OTG_WAKELOCK)		+= otg-wakelock.o
+obj-$(CONFIG_DUAL_ROLE_USB_INTF)	+= class-dual-role.o
 
 # transceiver drivers, keep the list sorted
 
