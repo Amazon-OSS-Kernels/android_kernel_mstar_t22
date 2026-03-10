@@ -30,6 +30,13 @@
 
 static struct od_ops od_ops;
 
+#if defined(CONFIG_MP_DVFS_CPUHOTPLUG_USE_ONLINE_CPU_MAX_LOAD)
+#include <mdrv_CPU_cluster_calibrating.h>
+extern struct mutex mstar_cpuload_lock;
+extern unsigned int mstar_cpu_load_freq[CONFIG_NR_CPUS];
+extern struct mstar_cpufreq_policy ondemand_timer[CONFIG_NR_CPUS];
+#endif
+
 static unsigned int default_powersave_bias;
 
 /*
@@ -142,6 +149,32 @@ static void od_update(struct cpufreq_policy *policy)
 	unsigned int load = dbs_update(policy);
 
 	dbs_info->freq_lo = 0;
+
+#if defined(CONFIG_MP_DVFS_CPUHOTPLUG_USE_ONLINE_CPU_MAX_LOAD)
+	int i, j = 0;
+	int cpu = policy->cpu;
+	unsigned int mstar_load_freq = 0;
+	if(cpu == ondemand_timer[cpu].cluster_m)    // for cluster_head, use max_cpu_load_freq among all online cpus of same cluster
+	{
+		mutex_lock(&mstar_cpuload_lock);
+		for_each_online_cpu(i)
+		{
+			if(cpu != ondemand_timer[i].cluster_m)	// we only take cpu_load of the cpu belonged to my_cluster into consideration
+				continue;
+			//printk("\033[35mFunction = %s, Line = %d, cpu%d reference cpu%d\033[m\n", __PRETTY_FUNCTION__, __LINE__, cpu, i);
+			if(mstar_load_freq < mstar_cpu_load_freq[i])
+			{
+				j = i;
+				mstar_load_freq = mstar_cpu_load_freq[i];
+			}
+		}
+		mutex_unlock(&mstar_cpuload_lock);
+	}
+	else
+		return;
+
+	load = mstar_load_freq;
+#endif
 
 	/* Check for frequency increase */
 	if (load > dbs_data->up_threshold) {
