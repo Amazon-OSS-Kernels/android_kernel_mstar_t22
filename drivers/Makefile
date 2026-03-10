@@ -175,3 +175,16 @@ obj-$(CONFIG_STM)		+= hwtracing/stm/
 obj-$(CONFIG_ANDROID)		+= android/
 obj-$(CONFIG_NVMEM)		+= nvmem/
 obj-$(CONFIG_FPGA)		+= fpga/
+
+obj-$(CONFIG_MSTAR_CHIP)        += mstar2/
+obj-$(CONFIG_INPUT)     += input/
+ifeq ($(CONFIG_MSTAR_3RD_PARTY), y)
+obj-$(CONFIG_MSTAR_CHIP)        += mstar3party/
+endif
+
+obj-$(CONFIG_CORESIGHT)     += coresight/
+obj-$(CONFIG_GATOR)     += gator/
+#obj-$(CONFIG_ANDROID)      += android/
+obj-$(CONFIG_SMAF)              += smaf/
+obj-$(CONFIG_TEE_2_4)		+= tee/
+obj-y					+= mtk_misc/
