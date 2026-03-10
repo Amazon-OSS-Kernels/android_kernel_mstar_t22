@@ -223,9 +223,11 @@ static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.accept_ra_rtr_pref	= 1,
 	.rtr_probe_interval	= 60 * HZ,
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	.accept_ra_rt_info_min_plen = 0,
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
+	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -238,6 +240,7 @@ static struct ipv6_devconf ipv6_devconf __read_mostly = {
 	.use_oif_addrs_only	= 0,
 	.ignore_routes_with_linkdown = 0,
 	.keep_addr_on_down	= 0,
+	.enhanced_dad           = 1,
 };
 
 static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
@@ -269,9 +272,11 @@ static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
 	.accept_ra_rtr_pref	= 1,
 	.rtr_probe_interval	= 60 * HZ,
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	.accept_ra_rt_info_min_plen = 0,
 	.accept_ra_rt_info_max_plen = 0,
 #endif
 #endif
+	.accept_ra_rt_table	= 0,
 	.proxy_ndp		= 0,
 	.accept_source_route	= 0,	/* we do not accept RH0 by default. */
 	.disable_ipv6		= 0,
@@ -284,6 +289,7 @@ static struct ipv6_devconf ipv6_devconf_dflt __read_mostly = {
 	.use_oif_addrs_only	= 0,
 	.ignore_routes_with_linkdown = 0,
 	.keep_addr_on_down	= 0,
+	.enhanced_dad           = 1,
 };
 
 /* Check if link is ready: is it up and is a valid qdisc available */
@@ -2203,6 +2209,31 @@ static void  ipv6_try_regen_rndid(struct inet6_dev *idev, struct in6_addr *tmpad
 		ipv6_regen_rndid(idev);
 }
 
+u32 addrconf_rt_table(const struct net_device *dev, u32 default_table) {
+	/* Determines into what table to put autoconf PIO/RIO/default routes
+	 * learned on this device.
+	 *
+	 * - If 0, use the same table for every device. This puts routes into
+	 *   one of RT_TABLE_{PREFIX,INFO,DFLT} depending on the type of route
+	 *   (but note that these three are currently all equal to
+	 *   RT6_TABLE_MAIN).
+	 * - If > 0, use the specified table.
+	 * - If < 0, put routes into table dev->ifindex + (-rt_table).
+	 */
+	struct inet6_dev *idev = in6_dev_get(dev);
+	u32 table;
+	int sysctl = idev->cnf.accept_ra_rt_table;
+	if (sysctl == 0) {
+		table = default_table;
+	} else if (sysctl > 0) {
+		table = (u32) sysctl;
+	} else {
+		table = (unsigned) dev->ifindex + (-sysctl);
+	}
+	in6_dev_put(idev);
+	return table;
+}
+
 /*
  *	Add prefix route.
  */
@@ -2212,7 +2243,7 @@ addrconf_prefix_route(struct in6_addr *pfx, int plen, struct net_device *dev,
 		      unsigned long expires, u32 flags)
 {
 	struct fib6_config cfg = {
-		.fc_table = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX,
+		.fc_table = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX),
 		.fc_metric = IP6_RT_PRIO_ADDRCONF,
 		.fc_ifindex = dev->ifindex,
 		.fc_expires = expires,
@@ -2245,7 +2276,7 @@ static struct rt6_info *addrconf_get_prefix_route(const struct in6_addr *pfx,
 	struct fib6_node *fn;
 	struct rt6_info *rt = NULL;
 	struct fib6_table *table;
-	u32 tb_id = l3mdev_fib_table(dev) ? : RT6_TABLE_PREFIX;
+	u32 tb_id = l3mdev_fib_table(dev) ? : addrconf_rt_table(dev, RT6_TABLE_PREFIX);
 
 	table = fib6_get_table(dev_net(dev), tb_id);
 	if (!table)
@@ -3753,12 +3784,21 @@ static void addrconf_dad_kick(struct inet6_ifaddr *ifp)
 {
 	unsigned long rand_num;
 	struct inet6_dev *idev = ifp->idev;
+	u64 nonce;
 
 	if (ifp->flags & IFA_F_OPTIMISTIC)
 		rand_num = 0;
 	else
 		rand_num = prandom_u32() % (idev->cnf.rtr_solicit_delay ? : 1);
 
+	nonce = 0;
+	if (idev->cnf.enhanced_dad ||
+	    dev_net(idev->dev)->ipv6.devconf_all->enhanced_dad) {
+		do
+			get_random_bytes(&nonce, 6);
+		while (nonce == 0);
+	}
+	ifp->dad_nonce = nonce;
 	ifp->dad_probes = idev->cnf.dad_transmits;
 	addrconf_mod_dad_work(ifp, rand_num);
 }
@@ -3936,7 +3976,8 @@ static void addrconf_dad_work(struct work_struct *w)
 
 	/* send a neighbour solicitation for our addr */
 	addrconf_addr_solict_mult(&ifp->addr, &mcaddr);
-	ndisc_send_ns(ifp->idev->dev, &ifp->addr, &mcaddr, &in6addr_any);
+	ndisc_send_ns(ifp->idev->dev, &ifp->addr, &mcaddr, &in6addr_any,
+		      ifp->dad_nonce);
 out:
 	in6_ifa_put(ifp);
 	rtnl_unlock();
@@ -4957,9 +4998,11 @@ static inline void ipv6_store_devconf(struct ipv6_devconf *cnf,
 	array[DEVCONF_RTR_PROBE_INTERVAL] =
 		jiffies_to_msecs(cnf->rtr_probe_interval);
 #ifdef CONFIG_IPV6_ROUTE_INFO
+	array[DEVCONF_ACCEPT_RA_RT_INFO_MIN_PLEN] = cnf->accept_ra_rt_info_min_plen;
 	array[DEVCONF_ACCEPT_RA_RT_INFO_MAX_PLEN] = cnf->accept_ra_rt_info_max_plen;
 #endif
 #endif
+	array[DEVCONF_ACCEPT_RA_RT_TABLE] = cnf->accept_ra_rt_table;
 	array[DEVCONF_PROXY_NDP] = cnf->proxy_ndp;
 	array[DEVCONF_ACCEPT_SOURCE_ROUTE] = cnf->accept_source_route;
 #ifdef CONFIG_IPV6_OPTIMISTIC_DAD
@@ -4982,6 +5025,7 @@ static inline void ipv6_store_devconf(struct ipv6_devconf *cnf,
 	array[DEVCONF_DROP_UNICAST_IN_L2_MULTICAST] = cnf->drop_unicast_in_l2_multicast;
 	array[DEVCONF_DROP_UNSOLICITED_NA] = cnf->drop_unsolicited_na;
 	array[DEVCONF_KEEP_ADDR_ON_DOWN] = cnf->keep_addr_on_down;
+	array[DEVCONF_ENHANCED_DAD] = cnf->enhanced_dad;
 }
 
 static inline size_t inet6_ifla6_size(void)
@@ -5932,6 +5976,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 	},
 #ifdef CONFIG_IPV6_ROUTE_INFO
 	{
+		.procname	= "accept_ra_rt_info_min_plen",
+		.data		= &ipv6_devconf.accept_ra_rt_info_min_plen,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
+	{
 		.procname	= "accept_ra_rt_info_max_plen",
 		.data		= &ipv6_devconf.accept_ra_rt_info_max_plen,
 		.maxlen		= sizeof(int),
@@ -5940,6 +5991,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 	},
 #endif
 #endif
+	{
+		.procname	= "accept_ra_rt_table",
+		.data		= &ipv6_devconf.accept_ra_rt_table,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+	},
 	{
 		.procname	= "proxy_ndp",
 		.data		= &ipv6_devconf.proxy_ndp,
@@ -6070,6 +6128,13 @@ static const struct ctl_table addrconf_sysctl[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec,
 
+	},
+	{
+		.procname       = "enhanced_dad",
+		.data           = &ipv6_devconf.enhanced_dad,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec,
 	},
 	{
 		/* sentinel */
