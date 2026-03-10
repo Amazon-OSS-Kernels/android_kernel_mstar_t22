@@ -1,6 +1,12 @@
 # define_trace.h needs to know how to find our header
 CFLAGS_trace.o			:= -I$(src)
 
+# compatiblity with mstar
+EXTRA_CFLAGS      += -Idrivers/mstar/usb
+
+# compatiblity with mstar2
+EXTRA_CFLAGS      += -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/usb
+
 udc-core-y			:= core.o trace.o
 
 #
