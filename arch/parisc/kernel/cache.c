@@ -538,6 +538,10 @@ void flush_cache_mm(struct mm_struct *mm)
 	struct vm_area_struct *vma;
 	pgd_t *pgd;
 
+	/* Flush the TLB to avoid speculation if coherency is required. */
+	if (parisc_requires_coherency())
+		flush_tlb_all();
+
 	/* Flushing the whole cache on each cpu takes forever on
 	   rp3440, etc.  So, avoid it if the mm isn't too big.  */
 	if ((!IS_ENABLED(CONFIG_SMP) || !arch_irqs_disabled()) &&
