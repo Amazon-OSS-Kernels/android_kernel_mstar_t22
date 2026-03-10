@@ -47,9 +47,13 @@
 #include <asm/virt.h>
 #include <asm/mach/arch.h>
 #include <asm/mpu.h>
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+#include <chip_setup.h>
+#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/ipi.h>
+#include "mdrv_types.h"
 
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
@@ -406,6 +410,11 @@ asmlinkage void secondary_start_kernel(void)
 	local_fiq_enable();
 	local_abt_enable();
 
+#if CONFIG_MSTAR_CPU_HOTPLUG
+	extern void gic_dist_subset_restore(void);
+	gic_dist_subset_restore();
+#endif
+
 	/*
 	 * OK, it's off to the idle thread for us
 	 */
@@ -693,6 +702,23 @@ int setup_profiling_timer(unsigned int multiplier)
 {
 	return -EINVAL;
 }
+
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+void smp_clear_magic(void)
+{
+	writel(0x0, SECOND_MAGIC_NUMBER_ADRESS);
+	writel(0x0, SECOND_START_ADDR);
+	writel(0x0, SECOND_START_ADDR + 4);
+
+	if(TEEINFO_TYPTE==SECURITY_TEEINFO_OSTYPE_OPTEE)
+	{
+		writel_relaxed(0x0, (void*)PAGE_OFFSET + 0x1004); //entry point put in 0x20201004
+		writel_relaxed(0x0, (void*)PAGE_OFFSET + 0x1000); //magic put in 0x20201000
+	}
+
+	__cpuc_flush_kern_all();
+}
+#endif
 
 #ifdef CONFIG_CPU_FREQ
 

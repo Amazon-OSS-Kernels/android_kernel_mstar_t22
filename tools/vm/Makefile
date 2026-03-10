@@ -6,7 +6,7 @@ LIB_DIR = ../lib/api
 LIBS = $(LIB_DIR)/libapi.a
 
 CC = $(CROSS_COMPILE)gcc
-CFLAGS = -Wall -Wextra -I../lib/
+CFLAGS = -Wall -Wextra -static -I../lib/
 LDFLAGS = $(LIBS)
 
 $(TARGETS): $(LIBS)

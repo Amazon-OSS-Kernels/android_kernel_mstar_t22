@@ -223,6 +223,8 @@ local_restart:
 	tst	r10, #_TIF_SYSCALL_WORK		@ are we tracing syscalls?
 	bne	__sys_trace
 
+	str	scno, [tsk, #TI_SYSCALL]	@ save syscall number
+
 	cmp	scno, #NR_syscalls		@ check upper syscall limit
 	badr	lr, ret_fast_syscall		@ return address
 	ldrcc	pc, [tbl, scno, lsl #2]		@ call sys_* routine
@@ -354,6 +356,9 @@ ENDPROC(sys_fstatfs64_wrapper)
  * Note: off_4k (r5) is always units of 4K.  If we can't do the requested
  * offset, we return EINVAL.
  */
+#ifdef CONFIG_MP_PLATFORM_UTOPIA2K_EXPORT_SYMBOL
+ENTRY(sys_mmap)
+#endif
 sys_mmap2:
 #if PAGE_SHIFT > 12
 		tst	r5, #PGOFF_MASK

@@ -2,6 +2,7 @@
 # Makefile for the linux arm-specific parts of the memory manager.
 #
 
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/cpu/arm
 obj-y				:= dma-mapping.o extable.o fault.o init.o \
 				   iomap.o
 
