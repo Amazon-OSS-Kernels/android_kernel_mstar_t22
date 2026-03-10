@@ -34,7 +34,7 @@ static int battery_status		= POWER_SUPPLY_STATUS_DISCHARGING;
 static int battery_health		= POWER_SUPPLY_HEALTH_GOOD;
 static int battery_present		= 1; /* true */
 static int battery_technology		= POWER_SUPPLY_TECHNOLOGY_LION;
-static int battery_capacity		= 50;
+static int battery_capacity		= 80;
 static int battery_voltage		= 3300;
 
 static bool module_initialized;
@@ -101,6 +101,7 @@ static int test_power_get_battery_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
+        case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		val->intval = battery_capacity;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
@@ -117,6 +118,10 @@ static int test_power_get_battery_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = battery_voltage;
 		break;
+        case POWER_SUPPLY_PROP_CURRENT_AVG:
+        case POWER_SUPPLY_PROP_CURRENT_NOW:
+                val->intval = 1600;
+                break;
 	default:
 		pr_info("%s: some properties deliberately report errors.\n",
 			__func__);
@@ -138,6 +143,7 @@ static enum power_supply_property test_power_battery_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_NOW,
+        POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
@@ -147,6 +153,8 @@ static enum power_supply_property test_power_battery_props[] = {
 	POWER_SUPPLY_PROP_SERIAL_NUMBER,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+        POWER_SUPPLY_PROP_CURRENT_AVG,
+        POWER_SUPPLY_PROP_CURRENT_NOW,
 };
 
 static char *test_power_ac_supplied_to[] = {
