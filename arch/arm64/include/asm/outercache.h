@@ -24,183 +24,119 @@
 #include <linux/types.h>
 #include <mstar/mpatch_macro.h>
 
-struct l2x0_regs;
-
 struct outer_cache_fns {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
-#if (MP_PLATFORM_ARM == 1)
+	#if (MP_PLATFORM_ARM == 1)
 	int (*is_enable)(void);
-#endif	/*MP_PLATFORM_ARM */
-#endif
+	#endif	/*MP_PLATFORM_ARM */
 	void (*inv_range)(unsigned long, unsigned long);
 	void (*clean_range)(unsigned long, unsigned long);
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
-#if (MP_PLATFORM_ARM == 1)
+	#if (MP_PLATFORM_ARM == 1)
 	void (*clean_all)(void);
-#endif /*MP_PLATFORM_ARM*/
-#endif
+	#endif /*MP_PLATFORM_ARM*/
 	void (*flush_range)(unsigned long, unsigned long);
 	void (*flush_all)(void);
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 	void (*inv_all)(void);
-#endif
 	void (*disable)(void);
 #ifdef CONFIG_OUTER_CACHE_SYNC
 	void (*sync)(void);
 #endif
+	void (*set_debug)(unsigned long);
 	void (*resume)(void);
-
-	/* This is an ARM L2C thing */
-	void (*write_sec)(unsigned long, unsigned);
-	void (*configure)(const struct l2x0_regs *);
 };
+
+#ifdef CONFIG_OUTER_CACHE
 
 extern struct outer_cache_fns outer_cache;
 
-#ifdef CONFIG_OUTER_CACHE
-/**
- * outer_inv_range - invalidate range of outer cache lines
- * @start: starting physical address, inclusive
- * @end: end physical address, exclusive
- */
 static inline void outer_inv_range(phys_addr_t start, phys_addr_t end)
 {
 	if (outer_cache.inv_range)
 		outer_cache.inv_range(start, end);
 }
-
-/**
- * outer_clean_range - clean dirty outer cache lines
- * @start: starting physical address, inclusive
- * @end: end physical address, exclusive
- */
 static inline void outer_clean_range(phys_addr_t start, phys_addr_t end)
 {
 	if (outer_cache.clean_range)
 		outer_cache.clean_range(start, end);
 }
-
-/**
- * outer_flush_range - clean and invalidate outer cache lines
- * @start: starting physical address, inclusive
- * @end: end physical address, exclusive
- */
 static inline void outer_flush_range(phys_addr_t start, phys_addr_t end)
 {
 	if (outer_cache.flush_range)
 		outer_cache.flush_range(start, end);
 }
 
-/**
- * outer_flush_all - clean and invalidate all cache lines in the outer cache
- *
- * Note: depending on implementation, this may not be atomic - it must
- * only be called with interrupts disabled and no other active outer
- * cache masters.
- *
- * It is intended that this function is only used by implementations
- * needing to override the outer_cache.disable() method due to security.
- * (Some implementations perform this as a clean followed by an invalidate.)
- */
 static inline void outer_flush_all(void)
 {
 	if (outer_cache.flush_all)
 		outer_cache.flush_all();
 }
 
-/**
- * outer_disable - clean, invalidate and disable the outer cache
- *
- * Disable the outer cache, ensuring that any data contained in the outer
- * cache is pushed out to lower levels of system memory.  The note and
- * conditions above concerning outer_flush_all() applies here.
- */
-extern void outer_disable(void);
+static inline void outer_inv_all(void)
+{
+	if (outer_cache.inv_all)
+		outer_cache.inv_all();
+}
 
-/**
- * outer_resume - restore the cache configuration and re-enable outer cache
- *
- * Restore any configuration that the cache had when previously enabled,
- * and re-enable the outer cache.
- */
+static inline void outer_disable(void)
+{
+	if (outer_cache.disable)
+		outer_cache.disable();
+}
+
 static inline void outer_resume(void)
 {
 	if (outer_cache.resume)
 		outer_cache.resume();
 }
+
 #else
 
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
-extern void  _chip_flush_miu_pipe(void);
-#endif
+extern void  Chip_Flush_Miu_Pipe(void);
 static inline void outer_inv_range(phys_addr_t start, phys_addr_t end)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
 static inline void outer_clean_range(phys_addr_t start, phys_addr_t end)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
 static inline void outer_flush_range(phys_addr_t start, phys_addr_t end)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
 static inline void outer_flush_all(void)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
-
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 static inline void outer_inv_all(void)
 {
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
 }
-#endif
-
 static inline void outer_disable(void)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
 static inline void outer_resume(void)
 {
-#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
 #if (MP_PLATFORM_ARM == 1)
-    _chip_flush_miu_pipe();
+    Chip_Flush_Miu_Pipe();
 #endif //MP_PLATFORM_ARM == 1 for inner L2 cpu, need to add mstar flush piple
-#endif
 }
 
 #endif
 
 #ifdef CONFIG_OUTER_CACHE_SYNC
-/**
- * outer_sync - perform a sync point for outer cache
- *
- * Ensure that all outer cache operations are complete and any store
- * buffers are drained.
- */
 static inline void outer_sync(void)
 {
 	if (outer_cache.sync)
