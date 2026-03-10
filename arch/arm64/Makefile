@@ -71,16 +71,74 @@ AS		+= -EB
 LD		+= -EB
 UTS_MACHINE	:= aarch64_be
 else
+machine-$(CONFIG_MSTAR_MOONEY)       += ../../../../mstar2/hal/mooney/cpu/arm64
+machine-$(CONFIG_MSTAR_MANHATTAN)   += ../../../../mstar2/hal/manhattan/cpu/arm64
+machine-$(CONFIG_MSTAR_MASERATI)    += ../../../../mstar2/hal/maserati/cpu/arm64
+machine-$(CONFIG_MSTAR_MAXIM)    += ../../../../mstar2/hal/maxim/cpu/arm64
+machine-$(CONFIG_MSTAR_MAINZ)    += ../../../../mstar2/hal/mainz/cpu/arm64
+machine-$(CONFIG_MSTAR_C2P)    += ../../../../mstar2/hal/c2p/cpu/arm64
+machine-$(CONFIG_MSTAR_M5621)   += ../../../../mstar2/hal/m5621/cpu/arm64
+machine-$(CONFIG_MSTAR_M7621)   += ../../../../mstar2/hal/m7621/cpu/arm64
+machine-$(CONFIG_MSTAR_M7221)   += ../../../../mstar2/hal/m7221/cpu/arm64
+machine-$(CONFIG_MSTAR_M7622)   += ../../../../mstar2/hal/m7622/cpu/arm64
+machine-$(CONFIG_MSTAR_M7322)   += ../../../../mstar2/hal/m7322/cpu/arm64
+machine-$(CONFIG_MSTAR_M7632)   += ../../../../mstar2/hal/m7632/cpu/arm64
+machine-$(CONFIG_MSTAR_M7332)   += ../../../../mstar2/hal/m7332/cpu/arm64
+machine-$(CONFIG_MSTAR_K7U)   += ../../../../mstar2/hal/k7u/cpu/arm64
+machine-$(CONFIG_MSTAR_K6)   += ../../../../mstar2/hal/k6/cpu/arm64
+
+ifeq ($(CONFIG_MP_MSTAR_STR_BASE),y)
+mstar_chip = $(subst ",,$(CONFIG_MSTAR_CHIP_NAME))
+ifneq ($(wildcard drivers/mstar2/hal/$(mstar_chip)/cpu/arm64/mstar_strmisc_chip.h),)
+KBUILD_CPPFLAGS += -DMSTAR_STRMISC_CHIP
+endif
+endif
+
+KBUILD_CPPFLAGS += -Iarch/arm64/include
+KBUILD_CPPFLAGS += -Idrivers/mstar2
+
+# Platform directory name.  This list is sorted alphanumerically
+plat-$(CONFIG_PLAT_MSTAR)    += mstar
+
+ifneq ($(CONFIG_MSTAR_CHIP),)
+MACHINE  := arch/arm64/arm-boards/$(word 1,$(machine-y))/
+machdirs := $(patsubst %,arch/arm64/arm-boards/%/,$(machine-y))
+platdirs := $(patsubst %,arch/arm64/arm-boards/plat-%/,$(plat-y))
+core-y += arch/arm64/arm-boards/generic/
+core-y += $(machdirs)
+#core-y += ../mstar2/hal/$(subst ",,$(CONFIG_MSTAR_CHIP_NAME))/cpu/arm64/
+
+ifeq ($(KBUILD_SRC),)
+KBUILD_CPPFLAGS += $(patsubst %,-I%/include,$(machdirs) $(platdirs))
+KBUILD_CPPFLAGS += $(patsubst %,-I%,$(machdirs) $(platdirs))
+else
+KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%/include,$(machdirs) $(platdirs))
+KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%,$(machdirs) $(platdirs))
+endif
+endif
+
+ifeq ($(CONFIG_MSTAR_CHIP_NAME), $(filter $(CONFIG_MSTAR_CHIP_NAME), "kano" "maserati" "m7821" "m7322" "m7622" "m7632"))
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
 LD		+= -EL
 UTS_MACHINE	:= aarch64
+else
+KBUILD_CPPFLAGS	+= -mlittle-endian -Wl,-fix-cortex-a53-843419
+AS		+= -EL -fix-cortex-a53-843419
+LD		+= -EL -fix-cortex-a53-843419
+UTS_MACHINE	:= aarch64
+endif
+
 endif
 
 CHECKFLAGS	+= -D__aarch64__
 
 ifeq ($(CONFIG_ARM64_MODULE_CMODEL_LARGE), y)
 KBUILD_CFLAGS_MODULE	+= -mcmodel=large
+ifeq ($(CONFIG_LTO_CLANG), y)
+# Code model is not stored in LLVM IR, so we need to pass it also to LLVMgold
+LDFLAGS		+= -plugin-opt=-code-model=large
+endif
 endif
 
 ifeq ($(CONFIG_ARM64_MODULE_PLTS),y)

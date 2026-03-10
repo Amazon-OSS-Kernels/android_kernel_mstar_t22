@@ -402,7 +402,7 @@ void __init page_ext_init(void)
 		 * scan [start_pfn, the biggest section's pfn < end_pfn) here.
 		 */
 		for (pfn = start_pfn; pfn < end_pfn;
-			pfn = ALIGN(pfn + 1, PAGES_PER_SECTION)) {
+			pfn = pfn + 1) {
 
 			if (!pfn_valid(pfn))
 				continue;
