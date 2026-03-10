@@ -63,10 +63,47 @@ $(obj)/Image.lzma: $(obj)/Image FORCE
 $(obj)/Image.lzo: $(obj)/Image FORCE
 	$(call if_changed,lzo)
 
-install:
+$(obj)/Image.gz-dtb: $(obj)/Image.gz $(DTB_OBJS) FORCE
+	$(call if_changed,cat)
+
+ifneq ($(LOADADDR),)
+  UIMAGE_LOADADDR=$(LOADADDR)
+else
+  ifeq ($(CONFIG_ZBOOT_ROM),y)
+    UIMAGE_LOADADDR=$(CONFIG_ZBOOT_ROM_TEXT)
+  else
+    UIMAGE_LOADADDR=$(ZRELADDR)
+  endif
+endif
+
+$(obj)/uImage: $(obj)/Image FORCE
+	$(call if_changed,uimage)
+	@echo '  Image $@ is ready'
+
+ifeq ($(CONFIG_MSTAR_ARM),y)
+$(obj)/uImage-dtb: $(obj)/uImage $(MAIN_DTB) FORCE
+	$(call if_changed,cat)
+	@echo ' uImage $@ is ready'
+endif
+
+quiet_cmd_zuimage = ZUIMAGE $@
+      cmd_zuimage = $(CONFIG_SHELL) $(MKIMAGE) -A arm -O linux -T kernel \
+	                -C gzip -a $(UIMAGE_LOADADDR) -e $(UIMAGE_LOADADDR) \
+					-n 'Linux-$(KERNELRELEASE)' -d $< $@
+
+$(obj)/zuImage: $(obj)/Image.gz FORCE
+	$(call if_changed,zuimage)
+	@echo '  zuImage $@ is ready'
+
+
+install: $(obj)/Image
 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
 	$(obj)/Image System.map "$(INSTALL_PATH)"
 
 zinstall:
 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
 	$(obj)/Image.gz System.map "$(INSTALL_PATH)"
+
+uinstall: $(obj)/uImage
+	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
+	$(obj)/uImage System.map "$(INSTALL_PATH)"

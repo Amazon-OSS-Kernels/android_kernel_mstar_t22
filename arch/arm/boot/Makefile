@@ -93,9 +93,20 @@ if [ $(words $(UIMAGE_LOADADDR)) -ne 1 ]; then \
 	false; \
 fi
 
+
+ifeq ($(CONFIG_ARCH_MSTAR_CA9),y)
 $(obj)/uImage:	$(obj)/zImage FORCE
+else
+$(obj)/uImage:	$(obj)/Image FORCE
+endif
 	@$(check_for_multiple_loadaddr)
 	$(call if_changed,uimage)
+
+ifeq ($(CONFIG_MSTAR_ARM),y)
+$(obj)/uImage-dtb: $(obj)/uImage $(MAIN_DTB) FORCE
+	$(call if_changed,cat)
+	@echo ' uImage $@ is ready'
+endif
 
 $(obj)/bootp/bootp: $(obj)/zImage initrd FORCE
 	$(Q)$(MAKE) $(build)=$(obj)/bootp $@

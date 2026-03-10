@@ -1,7 +1,29 @@
 
 ccflags-$(CONFIG_PM_DEBUG)	:= -DDEBUG
 
+CONFIG_MSTAR_CHIP_NAME := $(subst ",,$(CONFIG_MSTAR_CHIP_NAME))
+
 KASAN_SANITIZE_snapshot.o	:= n
+ifeq ($(CONFIG_MP_CMA_PATCH_MBOOT_STR_USE_CMA),y)
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/drv/cma_pool
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/include
+endif
+
+ifeq ($(CONFIG_MSTAR_PM),y)
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/include
+endif
+
+ifeq ($(CONFIG_MSTAR_FRC_R2),y)
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/include
+endif
+
+ifeq ($(CONFIG_MSTAR_IPAPOOL),y)
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/include
+endif
+
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/include/sys/common
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/drv/miu
+EXTRA_CFLAGS      +=  -Idrivers/mstar2/hal/$(CONFIG_MSTAR_CHIP_NAME)/miu
 
 obj-y				+= qos.o
 obj-$(CONFIG_PM)		+= main.o
