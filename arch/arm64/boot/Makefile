@@ -14,18 +14,45 @@
 # Based on the ia64 boot/Makefile.
 #
 
+include $(srctree)/arch/arm64/boot/dts/Makefile
+ifneq ($(MACHINE),)
+include $(srctree)/$(MACHINE)/Makefile.boot
+endif
+
+ZRELADDR    := $(zreladdr-y)
+
+export ZRELADDR
+
 OBJCOPYFLAGS_Image :=-O binary -R .note -R .note.gnu.build-id -R .comment -S
 
-targets := Image Image.gz
+targets := Image Image.gz uImage
+
+DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
+ifneq ($(DTB_NAMES),)
+DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
+else
+DTB_LIST := $(dtb-y)
+endif
+DTB_OBJS := $(addprefix $(obj)/dts/,$(DTB_LIST))
+
+ifeq ($(CONFIG_MSTAR_ARM),y)
+MAIN_DTB_OBJS := $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_an).main_dtb
+MAIN_DTB := $(addprefix $(obj)/dts/,$(MAIN_DTB_OBJS))
+endif
 
 $(obj)/Image: vmlinux FORCE
 	$(call if_changed,objcopy)
+	@echo '  Image $@ is ready'
 
 $(obj)/Image.bz2: $(obj)/Image FORCE
 	$(call if_changed,bzip2)
 
+$(obj)/Image-dtb: $(obj)/Image $(DTB_OBJS) FORCE
+	$(call if_changed,cat)
+
 $(obj)/Image.gz: $(obj)/Image FORCE
 	$(call if_changed,gzip)
+	@echo '  Image $@ is ready'
 
 $(obj)/Image.lz4: $(obj)/Image FORCE
 	$(call if_changed,lz4)

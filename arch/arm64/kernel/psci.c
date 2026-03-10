@@ -20,6 +20,7 @@
 #include <linux/smp.h>
 #include <linux/delay.h>
 #include <linux/psci.h>
+#include <linux/mm.h>
 
 #include <uapi/linux/psci.h>
 
@@ -27,6 +28,10 @@
 #include <asm/cpu_ops.h>
 #include <asm/errno.h>
 #include <asm/smp_plat.h>
+
+#ifdef CONFIG_MP_PLATFORM_ARM_64bit_PORTING
+#include "mdrv_types.h"
+#endif
 
 static int __init cpu_psci_cpu_init(unsigned int cpu)
 {
@@ -45,7 +50,7 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
 
 static int cpu_psci_cpu_boot(unsigned int cpu)
 {
-	int err = psci_ops.cpu_on(cpu_logical_map(cpu), __pa(secondary_entry));
+	int err = psci_ops.cpu_on(cpu_logical_map(cpu), __pa_symbol(secondary_entry));
 	if (err)
 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
 
@@ -66,6 +71,11 @@ static int cpu_psci_cpu_disable(unsigned int cpu)
 	return 0;
 }
 
+#ifdef CONFIG_MP_PLATFORM_ARM_64bit_PORTING
+extern void Chip_Flush_Cache_All_Single(void);
+extern void fpsimd_clear_state(void);
+#endif
+
 static void cpu_psci_cpu_die(unsigned int cpu)
 {
 	int ret;
@@ -75,6 +85,16 @@ static void cpu_psci_cpu_die(unsigned int cpu)
 	 */
 	u32 state = PSCI_POWER_STATE_TYPE_POWER_DOWN <<
 		    PSCI_0_2_POWER_STATE_TYPE_SHIFT;
+
+#ifdef CONFIG_MP_PLATFORM_ARM_64bit_PORTING
+	if(TEEINFO_TYPTE==SECURITY_TEEINFO_OSTYPE_OPTEE)
+	{
+#if defined(CONFIG_MP_MSTAR_STR_BASE)
+		fpsimd_clear_state();
+#endif
+		Chip_Flush_Cache_All_Single();
+	}
+#endif
 
 	ret = psci_ops.cpu_off(state);
 
@@ -112,7 +132,7 @@ static int cpu_psci_cpu_kill(unsigned int cpu)
 
 const struct cpu_operations cpu_psci_ops = {
 	.name		= "psci",
-#ifdef CONFIG_CPU_IDLE
+#if defined(CONFIG_CPU_IDLE) || defined(CONFIG_MP_PLATFORM_ARM_64bit_PORTING)
 	.cpu_init_idle	= psci_cpu_init_idle,
 	.cpu_suspend	= psci_cpu_suspend_enter,
 #endif

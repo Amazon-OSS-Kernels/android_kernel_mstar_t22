@@ -45,6 +45,7 @@
 #include <linux/personality.h>
 #include <linux/notifier.h>
 #include <trace/events/power.h>
+#include <linux/percpu.h>
 
 #include <asm/alternative.h>
 #include <asm/compat.h>
@@ -55,11 +56,50 @@
 #include <asm/processor.h>
 #include <asm/stacktrace.h>
 
+#include <mach/system.h>
+#include <mstar/mpatch_macro.h>
+
 #ifdef CONFIG_CC_STACKPROTECTOR
 #include <linux/stackprotector.h>
 unsigned long __stack_chk_guard __read_mostly;
 EXPORT_SYMBOL(__stack_chk_guard);
 #endif
+
+#if (MP_PLATFORM_PM == 1)
+static void arm_machine_restart(char mode, const char *cmd)
+{
+	/*
+	 * Tell the mm system that we are going to reboot -
+	 * we may need it to insert some 1:1 mappings so that
+	 * soft boot works.
+	 */
+	cpu_switch_mm(idmap_pg_dir, &init_mm);
+	flush_tlb_all();
+
+#ifndef CONFIG_MP_PLATFORM_ARM
+	/* Clean and invalidate caches */
+	flush_cache_all();
+
+	/* Turn D-cache off */
+	cpu_cache_off();
+
+	/* Push out any further dirty data, and ensure cache is empty */
+	flush_cache_all();
+#endif
+	/*
+	 * Now call the architecture specific reboot code.
+	 */
+	arch_reset(mode, cmd);
+}
+#endif
+
+void soft_restart(unsigned long addr)
+{
+	setup_mm_for_reboot();
+	cpu_soft_restart(virt_to_phys(cpu_reset), addr);
+	/* Should never get here */
+	BUG();
+}
 
 /*
  * Function pointers to optional machine specific functions
@@ -67,7 +107,12 @@ EXPORT_SYMBOL(__stack_chk_guard);
 void (*pm_power_off)(void);
 EXPORT_SYMBOL_GPL(pm_power_off);
 
+#if (MP_PLATFORM_PM == 1)
+void (*arm_pm_restart)(char str, const char *cmd) = arm_machine_restart;
+EXPORT_SYMBOL_GPL(arm_pm_restart);
+#else
 void (*arm_pm_restart)(enum reboot_mode reboot_mode, const char *cmd);
+#endif
 
 /*
  * This is our default idle handler.
@@ -133,7 +178,9 @@ void machine_power_off(void)
 
 /*
  * Restart requires that the secondary CPUs stop performing any activity
- * while the primary CPU resets the system. Systems with multiple CPUs must
+ * while the primary CPU resets the system. Systems with a single CPU can
+ * use soft_restart() as their machine descriptor's .restart hook, since that
+ * will cause the only available CPU to reset. Systems with multiple CPUs must
  * provide a HW restart implementation, to ensure that all CPUs reset at once.
  * This is required so that any code running after reset on the primary CPU
  * doesn't have to co-ordinate with other CPUs to ensure they aren't still
@@ -154,16 +201,85 @@ void machine_restart(char *cmd)
 		efi_reboot(reboot_mode, NULL);
 
 	/* Now call the architecture specific reboot code. */
+#if (MP_PLATFORM_PM == 1)
+	if (arm_pm_restart)
+		arm_pm_restart('h', cmd);
+#else
 	if (arm_pm_restart)
 		arm_pm_restart(reboot_mode, cmd);
 	else
 		do_kernel_restart(cmd);
+#endif
 
 	/*
 	 * Whoops - the architecture was unable to reboot.
 	 */
 	printk("Reboot failed -- System halted\n");
 	while (1);
+}
+
+/*
+ * dump a block of kernel memory from around the given address
+ */
+static void show_data(unsigned long addr, int nbytes, const char *name)
+{
+	int	i, j;
+	int	nlines;
+	u32	*p;
+
+	/*
+	 * don't attempt to dump non-kernel addresses or
+	 * values that are probably just small negative numbers
+	 */
+	if (addr < PAGE_OFFSET || addr > -256UL)
+		return;
+
+	printk("\n%s: %#lx:\n", name, addr);
+
+	/*
+	 * round address down to a 32 bit boundary
+	 * and always dump a multiple of 32 bytes
+	 */
+	p = (u32 *)(addr & ~(sizeof(u32) - 1));
+	nbytes += (addr & (sizeof(u32) - 1));
+	nlines = (nbytes + 31) / 32;
+
+
+	for (i = 0; i < nlines; i++) {
+		/*
+		 * just display low 16 bits of address to keep
+		 * each line of the dump < 80 characters
+		 */
+		pr_cont("%04lx ", (unsigned long)p & 0xffff);
+		for (j = 0; j < 8; j++) {
+			u32	data;
+			if (probe_kernel_address(p, data)) {
+				pr_cont(" ********");
+			} else {
+				pr_cont(" %08x", data);
+			}
+			++p;
+		}
+		pr_cont("\n");
+	}
+}
+
+static void show_extra_register_data(struct pt_regs *regs, int nbytes)
+{
+	mm_segment_t fs;
+	unsigned int i;
+
+	fs = get_fs();
+	set_fs(KERNEL_DS);
+	show_data(regs->pc - nbytes, nbytes * 2, "PC");
+	show_data(regs->regs[30] - nbytes, nbytes * 2, "LR");
+	show_data(regs->sp - nbytes, nbytes * 2, "SP");
+	for (i = 0; i < 30; i++) {
+		char name[4];
+		snprintf(name, sizeof(name), "X%u", i);
+		show_data(regs->regs[i] - nbytes, nbytes * 2, name);
+	}
+	set_fs(fs);
 }
 
 void __show_regs(struct pt_regs *regs)
@@ -201,6 +317,8 @@ void __show_regs(struct pt_regs *regs)
 
 		pr_cont("\n");
 	}
+	if (!user_mode(regs))
+		show_extra_register_data(regs, 128);
 	printk("\n");
 }
 
@@ -331,6 +449,20 @@ void uao_thread_switch(struct task_struct *next)
 }
 
 /*
+ * We store our current task in sp_el0, which is clobbered by userspace. Keep a
+ * shadow copy so that we can restore this upon entry from userspace.
+ *
+ * This is *only* for exception entry from EL0, and is not valid until we
+ * __switch_to() a user task.
+ */
+DEFINE_PER_CPU(struct task_struct *, __entry_task);
+
+static void entry_task_switch(struct task_struct *next)
+{
+	__this_cpu_write(__entry_task, next);
+}
+
+/*
  * Thread switching.
  */
 struct task_struct *__switch_to(struct task_struct *prev,
@@ -342,6 +474,7 @@ struct task_struct *__switch_to(struct task_struct *prev,
 	tls_thread_switch(next);
 	hw_breakpoint_thread_switch(next);
 	contextidr_thread_switch(next);
+	entry_task_switch(next);
 	uao_thread_switch(next);
 
 	/*
@@ -359,9 +492,13 @@ struct task_struct *__switch_to(struct task_struct *prev,
 unsigned long get_wchan(struct task_struct *p)
 {
 	struct stackframe frame;
-	unsigned long stack_page;
+	unsigned long stack_page, ret = 0;
 	int count = 0;
 	if (!p || p == current || p->state == TASK_RUNNING)
+		return 0;
+
+	stack_page = (unsigned long)try_get_task_stack(p);
+	if (!stack_page)
 		return 0;
 
 	frame.fp = thread_saved_fp(p);
@@ -370,16 +507,20 @@ unsigned long get_wchan(struct task_struct *p)
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 	frame.graph = p->curr_ret_stack;
 #endif
-	stack_page = (unsigned long)task_stack_page(p);
 	do {
 		if (frame.sp < stack_page ||
 		    frame.sp >= stack_page + THREAD_SIZE ||
 		    unwind_frame(p, &frame))
-			return 0;
-		if (!in_sched_functions(frame.pc))
-			return frame.pc;
+			goto out;
+		if (!in_sched_functions(frame.pc)) {
+			ret = frame.pc;
+			goto out;
+		}
 	} while (count ++ < 16);
-	return 0;
+
+out:
+	put_task_stack(p);
+	return ret;
 }
 
 unsigned long arch_align_stack(unsigned long sp)

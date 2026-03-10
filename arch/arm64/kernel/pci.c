@@ -21,7 +21,8 @@
 #include <linux/pci-acpi.h>
 #include <linux/pci-ecam.h>
 #include <linux/slab.h>
-
+#include <asm/mach/pci.h>
+#if !MP_PCI_MSTAR
 /*
  * Called after each bus is probed, but before its children are examined
  */
@@ -38,19 +39,30 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
 {
 	return res->start;
 }
+#endif
 
 /*
  * Try to assign the IRQ number when probing a new device
  */
 int pcibios_alloc_irq(struct pci_dev *dev)
 {
-	if (acpi_disabled)
+#if MP_PCI_MSTAR
+	struct pci_sys_data *sys = dev->sysdata;
+     u8 pin;
+#endif
+
+#if MP_PCI_MSTAR
+     pci_read_config_byte((const struct pci_dev *)dev, PCI_INTERRUPT_PIN, &pin);
+	if (sys->map_irq)
+		dev->irq = sys->map_irq((const struct pci_dev *)dev, 0, pin);
+#else
+	if(acpi_disabled)
 		dev->irq = of_irq_parse_and_map_pci(dev, 0, 0);
 #ifdef CONFIG_ACPI
 	else
 		return acpi_pci_irq_enable(dev);
 #endif
-
+#endif
 	return 0;
 }
 
