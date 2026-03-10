@@ -13,12 +13,14 @@
 #include <linux/poll.h>
 #include <linux/uio.h>
 #include <linux/miscdevice.h>
+#include <linux/namei.h>
 #include <linux/pagemap.h>
 #include <linux/file.h>
 #include <linux/slab.h>
 #include <linux/pipe_fs_i.h>
 #include <linux/swap.h>
 #include <linux/splice.h>
+#include <linux/freezer.h>
 
 MODULE_ALIAS_MISCDEV(FUSE_MINOR);
 MODULE_ALIAS("devname:fuse");
@@ -453,7 +455,9 @@ static void request_wait_answer(struct fuse_conn *fc, struct fuse_req *req)
 	 * Either request is already in userspace, or it was forced.
 	 * Wait it out.
 	 */
-	wait_event(req->waitq, test_bit(FR_FINISHED, &req->flags));
+	while (!test_bit(FR_FINISHED, &req->flags))
+		wait_event_freezable(req->waitq,
+				test_bit(FR_FINISHED, &req->flags));
 }
 
 static void __fuse_request_send(struct fuse_conn *fc, struct fuse_req *req)
@@ -957,7 +961,17 @@ static int fuse_copy_page(struct fuse_copy_state *cs, struct page **pagep,
 
 	while (count) {
 		if (cs->write && cs->pipebufs && page) {
-			return fuse_ref_page(cs, page, offset, count);
+			/*
+			 * Can't control lifetime of pipe buffers, so always
+			 * copy user pages.
+			 */
+			if (cs->req->user_pages) {
+				err = fuse_copy_fill(cs);
+				if (err)
+					return err;
+			} else {
+				return fuse_ref_page(cs, page, offset, count);
+			}
 		} else if (!cs->len) {
 			if (cs->move_pages && page &&
 			    offset == 0 && count == PAGE_SIZE) {
@@ -1321,6 +1335,13 @@ static int fuse_dev_open(struct inode *inode, struct file *file)
 	 * keep track of whether the file has been mounted already.
 	 */
 	file->private_data = NULL;
+#if MP_MSTAR_STR_PROCESS_FREEZE_LATE
+	current->flags |= PF_FREEZE_LATE;
+#if MP_MSTAR_STR_PROCESS_FREEZE_LATE_DEBUG
+	printk(KERN_DEBUG "fuse:after set PF_FREEZE_LATE to %s pid=%5d flag=0x%08lx\n",
+		current->comm, task_pid_nr(current), current->flags);
+#endif
+#endif
 	return 0;
 }
 
@@ -1880,6 +1901,12 @@ static ssize_t fuse_dev_do_write(struct fuse_dev *fud,
 		cs->move_pages = 0;
 
 	err = copy_out_args(cs, &req->out, nbytes);
+	if (req->in.h.opcode == FUSE_CANONICAL_PATH) {
+		char *path = (char *)req->out.args[0].value;
+
+		path[req->out.args[0].size - 1] = 0;
+		req->out.h.error = kern_path(path, 0, req->canonical_path);
+	}
 	fuse_copy_finish(cs);
 
 	spin_lock(&fpq->lock);
@@ -2148,6 +2175,13 @@ int fuse_dev_release(struct inode *inode, struct file *file)
 		}
 		fuse_dev_free(fud);
 	}
+#if MP_MSTAR_STR_PROCESS_FREEZE_LATE
+	current->flags &= ~PF_FREEZE_LATE;
+#if MP_MSTAR_STR_PROCESS_FREEZE_LATE_DEBUG
+	printk(KERN_DEBUG "fuse:after clear PF_FREEZE_LATE from %s pid=%5d flag=0x%08lx\n",
+		current->comm, task_pid_nr(current), current->flags);
+#endif
+#endif
 	return 0;
 }
 EXPORT_SYMBOL_GPL(fuse_dev_release);
