@@ -163,6 +163,7 @@ static int tmc_enable_etf_sink_sysfs(struct coresight_device *csdev, u32 mode)
 		drvdata->buf = buf;
 	}
 
+	drvdata->mode = CS_MODE_SYSFS;
 	tmc_etb_enable_hw(drvdata);
 out:
 	spin_unlock_irqrestore(&drvdata->spinlock, flags);
@@ -177,16 +178,11 @@ out:
 	return ret;
 }
 
-static int tmc_enable_etf_sink_perf(struct coresight_device *csdev, u32 mode)
+static int tmc_enable_etf_sink_perf(struct coresight_device *csdev)
 {
 	int ret = 0;
-	long val;
 	unsigned long flags;
 	struct tmc_drvdata *drvdata = dev_get_drvdata(csdev->dev.parent);
-
-	 /* This shouldn't be happening */
-	if (WARN_ON(mode != CS_MODE_PERF))
-		return -EINVAL;
 
 	spin_lock_irqsave(&drvdata->spinlock, flags);
 	if (drvdata->reading) {
@@ -194,17 +190,17 @@ static int tmc_enable_etf_sink_perf(struct coresight_device *csdev, u32 mode)
 		goto out;
 	}
 
-	val = local_xchg(&drvdata->mode, mode);
 	/*
 	 * In Perf mode there can be only one writer per sink.  There
 	 * is also no need to continue if the ETB/ETR is already operated
 	 * from sysFS.
 	 */
-	if (val != CS_MODE_DISABLED) {
+	if (drvdata->mode != CS_MODE_DISABLED) {
 		ret = -EINVAL;
 		goto out;
 	}
 
+	drvdata->mode = CS_MODE_PERF;
 	tmc_etb_enable_hw(drvdata);
 out:
 	spin_unlock_irqrestore(&drvdata->spinlock, flags);
@@ -216,9 +212,9 @@ static int tmc_enable_etf_sink(struct coresight_device *csdev, u32 mode)
 {
 	switch (mode) {
 	case CS_MODE_SYSFS:
-		return tmc_enable_etf_sink_sysfs(csdev, mode);
+		return tmc_enable_etf_sink_sysfs(csdev);
 	case CS_MODE_PERF:
-		return tmc_enable_etf_sink_perf(csdev, mode);
+		return tmc_enable_etf_sink_perf(csdev);
 	}
 
 	/* We shouldn't be here */
@@ -383,7 +379,7 @@ static void tmc_update_etf_buffer(struct coresight_device *csdev,
 		return;
 
 	/* This shouldn't happen */
-	if (WARN_ON_ONCE(local_read(&drvdata->mode) != CS_MODE_PERF))
+	if (WARN_ON_ONCE(drvdata->mode != CS_MODE_PERF))
 		return;
 
 	CS_UNLOCK(drvdata->base);
