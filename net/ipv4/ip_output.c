@@ -74,11 +74,16 @@
 #include <net/checksum.h>
 #include <net/inetpeer.h>
 #include <net/lwtunnel.h>
+#include <linux/bpf-cgroup.h>
 #include <linux/igmp.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_bridge.h>
 #include <linux/netlink.h>
 #include <linux/tcp.h>
+
+#if defined(CONFIG_NOE_NAT_HW)
+#include "../../drivers/mstar2/drv/noe/nat/hw_nat/mdrv_hwnat.h"
+#endif
 
 static int
 ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
@@ -287,6 +292,13 @@ static int ip_finish_output_gso(struct net *net, struct sock *sk,
 static int ip_finish_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 {
 	unsigned int mtu;
+	int ret;
+
+	ret = BPF_CGROUP_RUN_PROG_INET_EGRESS(sk, skb);
+	if (ret) {
+		kfree_skb(skb);
+		return ret;
+	}
 
 #if defined(CONFIG_NETFILTER) && defined(CONFIG_XFRM)
 	/* Policy lookup after SNAT yielded a new policy */
@@ -303,6 +315,20 @@ static int ip_finish_output(struct net *net, struct sock *sk, struct sk_buff *sk
 		return ip_fragment(net, sk, skb, mtu, ip_finish_output2);
 
 	return ip_finish_output2(net, sk, skb);
+}
+
+static int ip_mc_finish_output(struct net *net, struct sock *sk,
+			       struct sk_buff *skb)
+{
+	int ret;
+
+	ret = BPF_CGROUP_RUN_PROG_INET_EGRESS(sk, skb);
+	if (ret) {
+		kfree_skb(skb);
+		return ret;
+	}
+
+	return dev_loopback_xmit(net, sk, skb);
 }
 
 int ip_mc_output(struct net *net, struct sock *sk, struct sk_buff *skb)
@@ -342,7 +368,7 @@ int ip_mc_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 			if (newskb)
 				NF_HOOK(NFPROTO_IPV4, NF_INET_POST_ROUTING,
 					net, sk, newskb, NULL, newskb->dev,
-					dev_loopback_xmit);
+					ip_mc_finish_output);
 		}
 
 		/* Multicasts with ttl 0 must not go beyond the host */
@@ -358,7 +384,7 @@ int ip_mc_output(struct net *net, struct sock *sk, struct sk_buff *skb)
 		if (newskb)
 			NF_HOOK(NFPROTO_IPV4, NF_INET_POST_ROUTING,
 				net, sk, newskb, NULL, newskb->dev,
-				dev_loopback_xmit);
+				ip_mc_finish_output);
 	}
 
 	return NF_HOOK_COND(NFPROTO_IPV4, NF_INET_POST_ROUTING,
@@ -474,6 +500,27 @@ packet_routed:
 	/* TODO : should we use skb->sk here instead of sk ? */
 	skb->priority = sk->sk_priority;
 	skb->mark = sk->sk_mark;
+
+#if defined(CONFIG_NOE_NAT_HW)
+#if defined (CONFIG_NOE_HW_NAT_PPTP_L2TP)
+    /* only clear headeroom for TCP OR not L2TP packets */
+    if( (iph->protocol == 0x6) || (ntohs(udp_hdr(skb)->dest) != 1701) ) {
+        if (IS_SPACE_AVAILABLED(skb)){
+                FOE_MAGIC_TAG(skb) = 0;
+                FOE_AI(skb) = UN_HIT;
+        }
+    }
+#else
+        if (IS_SPACE_AVAILABLED_HEAD(skb)){
+                FOE_MAGIC_TAG_HEAD(skb) = 0;
+                FOE_AI_HEAD(skb) = UN_HIT;
+        }
+        if (IS_SPACE_AVAILABLED_TAIL(skb)){
+                FOE_MAGIC_TAG_TAIL(skb) = 0;
+                FOE_AI_TAIL(skb) = UN_HIT;
+        }
+#endif
+#endif
 
 	res = ip_local_out(net, sk, skb);
 	rcu_read_unlock();
@@ -1600,7 +1647,8 @@ void ip_send_unicast_reply(struct sock *sk, struct sk_buff *skb,
 			   RT_SCOPE_UNIVERSE, ip_hdr(skb)->protocol,
 			   ip_reply_arg_flowi_flags(arg),
 			   daddr, saddr,
-			   tcp_hdr(skb)->source, tcp_hdr(skb)->dest);
+			   tcp_hdr(skb)->source, tcp_hdr(skb)->dest,
+			   arg->uid);
 	security_skb_classify_flow(skb, flowi4_to_flowi(&fl4));
 	rt = ip_route_output_key(net, &fl4);
 	if (IS_ERR(rt))

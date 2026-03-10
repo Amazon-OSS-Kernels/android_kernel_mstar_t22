@@ -116,6 +116,10 @@
 #include <net/sock_reuseport.h>
 #include <net/addrconf.h>
 
+#if  defined(CONFIG_NOE_NAT_HW)
+#include "../../drivers/mstar2/drv/noe/nat/hw_nat/mdrv_hwnat.h"
+#endif
+
 struct udp_table udp_table __read_mostly;
 EXPORT_SYMBOL(udp_table);
 
@@ -1018,7 +1022,8 @@ int udp_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
 		flowi4_init_output(fl4, ipc.oif, sk->sk_mark, tos,
 				   RT_SCOPE_UNIVERSE, sk->sk_protocol,
 				   flow_flags,
-				   faddr, saddr, dport, inet->inet_sport);
+				   faddr, saddr, dport, inet->inet_sport,
+				   sk->sk_uid);
 
 		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
 		rt = ip_route_output_flow(net, fl4, sk);
@@ -1968,6 +1973,21 @@ void udp_v4_early_demux(struct sk_buff *skb)
 
 int udp_rcv(struct sk_buff *skb)
 {
+#if  defined(CONFIG_NOE_NAT_HW)
+        if((FOE_MAGIC_TAG_HEAD(skb) == FOE_MAGIC_PCI) ||
+           (FOE_MAGIC_TAG_HEAD(skb) == FOE_MAGIC_WLAN) ||
+           (FOE_MAGIC_TAG_HEAD(skb) == FOE_MAGIC_GE)){
+           if(IS_SPACE_AVAILABLED_HEAD(skb))
+                FOE_MAGIC_TAG_HEAD(skb) = 0;
+        }
+        if((FOE_MAGIC_TAG_TAIL(skb) == FOE_MAGIC_PCI) ||
+           (FOE_MAGIC_TAG_TAIL(skb) == FOE_MAGIC_WLAN) ||
+           (FOE_MAGIC_TAG_TAIL(skb) == FOE_MAGIC_GE)){
+           if(IS_SPACE_AVAILABLED_TAIL(skb))
+                FOE_MAGIC_TAG_TAIL(skb) = 0;
+        }
+#endif
+
 	return __udp4_lib_rcv(skb, &udp_table, IPPROTO_UDP);
 }
 
