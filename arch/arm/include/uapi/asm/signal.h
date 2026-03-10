@@ -54,6 +54,13 @@ typedef unsigned long sigset_t;
 
 /* These should not be considered constants from userland.  */
 #define SIGRTMIN	32
+
+/* Mstar define signal */
+#ifdef CONFIG_NETFLIX_CRASH_MONITOR
+/* For Netflix Crash Monitor */
+#define SIGMTR          40
+#endif
+
 #define SIGRTMAX	_NSIG
 
 #define SIGSWI		32

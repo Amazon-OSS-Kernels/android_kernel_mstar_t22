@@ -65,6 +65,10 @@ struct thread_info {
 #ifdef CONFIG_ARM_THUMBEE
 	unsigned long		thumbee_state;	/* ThumbEE Handler Base register */
 #endif
+#ifdef CONFIG_MP_AMAZON_NON_ROOT_SECURE_DEBUG
+	char			lfn[128];
+	int			sc_mode_flag;
+#endif
 };
 
 #define INIT_THREAD_INFO(tsk)						\

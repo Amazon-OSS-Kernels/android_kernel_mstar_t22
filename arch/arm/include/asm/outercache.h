@@ -22,14 +22,28 @@
 #define __ASM_OUTERCACHE_H
 
 #include <linux/types.h>
+#include <mstar/mpatch_macro.h>
 
 struct l2x0_regs;
 
 struct outer_cache_fns {
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+#if (MP_PLATFORM_ARM == 1)
+	int (*is_enable)(void);
+#endif	/*MP_PLATFORM_ARM */
+#endif
 	void (*inv_range)(unsigned long, unsigned long);
 	void (*clean_range)(unsigned long, unsigned long);
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+#if (MP_PLATFORM_ARM == 1)
+	void (*clean_all)(void);
+#endif /*MP_PLATFORM_ARM*/
+#endif
 	void (*flush_range)(unsigned long, unsigned long);
 	void (*flush_all)(void);
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+	void (*inv_all)(void);
+#endif
 	void (*disable)(void);
 #ifdef CONFIG_OUTER_CACHE_SYNC
 	void (*sync)(void);

@@ -37,8 +37,9 @@
  * TASK_SIZE - the maximum size of a user space task.
  * TASK_UNMAPPED_BASE - the lower boundary of the mmap VM area
  */
-#define TASK_SIZE		(UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M))
-#define TASK_UNMAPPED_BASE	ALIGN(TASK_SIZE / 3, SZ_16M)
+#define TASK_SIZE		(UL(CONFIG_PAGE_OFFSET) - UL(0x1600000))
+#define TASK_SIZE_2		(UL(CONFIG_PAGE_OFFSET) - UL(SZ_16M))
+#define TASK_UNMAPPED_BASE	ALIGN(TASK_SIZE / 3, 0x1600000)
 
 /*
  * The maximum size of a 26-bit user space task.
@@ -50,7 +51,7 @@
  * and PAGE_OFFSET - it must be within 32MB of the kernel text.
  */
 #ifndef CONFIG_THUMB2_KERNEL
-#define MODULES_VADDR		(PAGE_OFFSET - SZ_16M)
+#define MODULES_VADDR		(PAGE_OFFSET - 0x1600000)
 #else
 /* smaller range for Thumb-2 symbols relocation (2^24)*/
 #define MODULES_VADDR		(PAGE_OFFSET - SZ_8M)
@@ -132,7 +133,9 @@
  * have CONFIG_ARM_PATCH_PHYS_VIRT. Assembly code must always use
  * PLAT_PHYS_OFFSET and not PHYS_OFFSET.
  */
-#define PLAT_PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
+#ifndef PLAT_PHYS_OFFSET
+#define PLAT_PHYS_OFFSET        UL(CONFIG_PHYS_OFFSET)
+#endif
 
 #ifdef CONFIG_XIP_KERNEL
 /*
@@ -235,24 +238,36 @@ static inline unsigned long __phys_to_virt(phys_addr_t x)
 
 #else
 
+#ifndef PHYS_OFFSET
 #define PHYS_OFFSET	PLAT_PHYS_OFFSET
+#endif
 #define PHYS_PFN_OFFSET	((unsigned long)(PHYS_OFFSET >> PAGE_SHIFT))
 
+#ifndef __virt_to_phys
 static inline phys_addr_t __virt_to_phys(unsigned long x)
 {
 	return (phys_addr_t)x - PAGE_OFFSET + PHYS_OFFSET;
 }
+#endif
 
+#if defined(__virt_to_phys)
+#define virt_to_pfn(kaddr) (__pa(kaddr) >> PAGE_SHIFT)
+#endif
+
+#ifndef __phys_to_virt
 static inline unsigned long __phys_to_virt(phys_addr_t x)
 {
 	return x - PHYS_OFFSET + PAGE_OFFSET;
 }
+#endif
 
 #endif
 
+#ifndef virt_to_pfn
 #define virt_to_pfn(kaddr) \
 	((((unsigned long)(kaddr) - PAGE_OFFSET) >> PAGE_SHIFT) + \
 	 PHYS_PFN_OFFSET)
+#endif
 
 /*
  * These are *only* valid on the kernel direct mapped RAM memory.
