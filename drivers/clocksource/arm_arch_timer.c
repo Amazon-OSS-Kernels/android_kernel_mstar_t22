@@ -26,6 +26,7 @@
 #include <linux/slab.h>
 #include <linux/sched_clock.h>
 #include <linux/acpi.h>
+#include <mstar/mpatch_macro.h>
 
 #include <asm/arch_timer.h>
 #include <asm/virt.h>
@@ -449,7 +450,10 @@ static void arch_counter_set_user_access(void)
 			| ARCH_TIMER_USR_PCT_ACCESS_EN);
 
 	/* Enable user access to the virtual counter */
-	cntkctl |= ARCH_TIMER_USR_VCT_ACCESS_EN;
+	if (IS_ENABLED(CONFIG_ARM_ARCH_TIMER_VCT_ACCESS))
+		cntkctl |= ARCH_TIMER_USR_VCT_ACCESS_EN;
+	else
+		cntkctl &= ~ARCH_TIMER_USR_VCT_ACCESS_EN;
 
 	arch_timer_set_cntkctl(cntkctl);
 }
@@ -541,6 +545,15 @@ u32 arch_timer_get_rate(void)
 	return arch_timer_rate;
 }
 
+/*u64 arch_timer_read_counter(void)
+{
+ #if (MP_PLATFORM_ARM_64bit_PORTING == 1)
+	return arch_counter_get_cntpct();
+ #else
+	return arch_counter_get_cntvct();
+ #endif
+}
+*/
 static u64 arch_counter_get_cntvct_mem(void)
 {
 	u32 vct_lo, vct_hi, tmp_hi;
@@ -560,16 +573,30 @@ static u64 arch_counter_get_cntvct_mem(void)
  * to exist on arm64. arm doesn't use this before DT is probed so even
  * if we don't have the cp15 accessors we won't have a problem.
  */
+#if (MP_PLATFORM_ARM_64bit_PORTING == 1)
+u64 (*arch_timer_read_counter)(void) = arch_counter_get_cntpct;
+#else
 u64 (*arch_timer_read_counter)(void) = arch_counter_get_cntvct;
+#endif
 
 static cycle_t arch_counter_read(struct clocksource *cs)
 {
-	return arch_timer_read_counter();
+	//return arch_timer_read_counter();
+ #if (MP_PLATFORM_ARM_64bit_PORTING == 1)
+	return arch_counter_get_cntpct();
+ #else
+	return arch_counter_get_cntvct();
+ #endif
 }
 
 static cycle_t arch_counter_read_cc(const struct cyclecounter *cc)
 {
-	return arch_timer_read_counter();
+	//return arch_timer_read_counter();
+ #if (MP_PLATFORM_ARM_64bit_PORTING == 1)
+	return arch_counter_get_cntpct();
+ #else
+	return arch_counter_get_cntvct();
+ #endif
 }
 
 static struct clocksource clocksource_counter = {
@@ -619,7 +646,12 @@ static void __init arch_counter_register(unsigned type)
 
 	if (!arch_counter_suspend_stop)
 		clocksource_counter.flags |= CLOCK_SOURCE_SUSPEND_NONSTOP;
-	start_count = arch_timer_read_counter();
+	//start_count = arch_timer_read_counter();
+ #if (MP_PLATFORM_ARM_64bit_PORTING == 1)
+	start_count = arch_counter_get_cntpct();
+ #else
+	start_count = arch_counter_get_cntvct();
+ #endif
 	clocksource_register_hz(&clocksource_counter, arch_timer_rate);
 	cyclecounter.mult = clocksource_counter.mult;
 	cyclecounter.shift = clocksource_counter.shift;
