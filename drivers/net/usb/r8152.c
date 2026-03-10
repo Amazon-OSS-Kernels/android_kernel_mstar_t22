@@ -27,7 +27,6 @@
 #include <linux/usb/cdc.h>
 #include <linux/suspend.h>
 #include <linux/acpi.h>
-
 /* Information for net-next */
 #define NETNEXT_VERSION		"08"
 
