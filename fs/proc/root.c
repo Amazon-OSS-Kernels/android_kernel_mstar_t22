@@ -93,6 +93,8 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 	} else {
 		ns = task_active_pid_ns(current);
 	}
+	if (!proc_parse_options(data, ns))
+		return ERR_PTR(-EINVAL);
 
 	return mount_ns(fs_type, flags, data, ns, ns->user_ns, proc_fill_super);
 }
@@ -131,7 +133,7 @@ void __init proc_root_init(void)
 	proc_symlink("mounts", NULL, "self/mounts");
 
 	proc_net_init();
-
+	proc_uid_init();
 #ifdef CONFIG_SYSVIPC
 	proc_mkdir("sysvipc", NULL);
 #endif
