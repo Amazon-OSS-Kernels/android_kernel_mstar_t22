@@ -21,6 +21,11 @@ unsigned int __machine_arch_type;
 #include <linux/compiler.h>	/* for inline */
 #include <linux/types.h>
 #include <linux/linkage.h>
+#include <mstar/mpatch_macro.h>
+
+#if (MP_PLATFORM_ARM == 1)
+#include <asm/unaligned.h>
+#endif/*MP_PLATFORM_ARM*/
 
 static void putstr(const char *ptr);
 extern void error(char *x);
@@ -45,6 +50,18 @@ static void icedcc_putc(int ch)
 	asm("mcr p14, 0, %0, c0, c5, 0" : : "r" (ch));
 }
 
+#if (MP_PLATFORM_ARM == 1)
+#elif defined(CONFIG_CPU_V7)
+
+static void icedcc_putc(int ch)
+{
+        asm(
+        "wait:  mrc     p14, 0, pc, c0, c1, 0                   \n\
+                bcs     wait                                    \n\
+                mcr     p14, 0, %0, c0, c5, 0                   "
+        : : "r" (ch));
+}
+#endif
 
 #elif defined(CONFIG_CPU_XSCALE)
 
@@ -93,7 +110,9 @@ static void putstr(const char *ptr)
 		putc(c);
 	}
 
+#if (MP_PLATFORM_ARM != 1)
 	flush();
+#endif
 }
 
 /*
