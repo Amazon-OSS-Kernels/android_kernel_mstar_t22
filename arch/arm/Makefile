@@ -104,7 +104,11 @@ tune-$(CONFIG_CPU_V6K)		=$(call cc-option,-mtune=arm1136j-s,-mtune=strongarm)
 tune-y := $(tune-y)
 
 ifeq ($(CONFIG_AEABI),y)
+ifeq ($(CONFIG_MSTAR_M3822),y)
+CFLAGS_ABI	:=-mabi=aapcs-linux -mno-thumb-interwork -mfpu=vfpv3-d16
+else
 CFLAGS_ABI	:=-mabi=aapcs-linux -mno-thumb-interwork -mfpu=vfp
+endif
 else
 CFLAGS_ABI	:=$(call cc-option,-mapcs-32,-mabi=apcs-gnu) $(call cc-option,-mno-thumb-interwork,)
 endif
@@ -233,7 +237,9 @@ plat-$(CONFIG_PLAT_IOP)		+= iop
 plat-$(CONFIG_PLAT_ORION)	+= orion
 plat-$(CONFIG_PLAT_PXA)		+= pxa
 plat-$(CONFIG_PLAT_S3C24XX)	+= samsung
-plat-$(CONFIG_PLAT_VERSATILE)	+= versatile
+#plat-$(CONFIG_PLAT_VERSATILE)	+= versatile
+plat-$(CONFIG_PLAT_MSTAR)       += mstar
+
 
 ifeq ($(CONFIG_ARCH_EBSA110),y)
 # This is what happens if you forget the IOCS16 line.
@@ -245,6 +251,22 @@ endif
 # The byte offset of the kernel image in RAM from the start of RAM.
 TEXT_OFFSET := $(textofs-y)
 
+ifneq ($(CONFIG_MSTAR_CHIP),)
+MACHINE  := arch/arm/arm-boards/$(word 1,$(machine-y))/
+machdirs := $(patsubst %,arch/arm/arm-boards/%/,$(machine-y))
+platdirs := $(patsubst %,arch/arm/arm-boards/plat-%/,$(plat-y))
+core-y += arch/arm/arm-boards/generic/
+KBUILD_CPPFLAGS += -Iarch/arm/arm-boards/generic/include/
+ifeq ($(KBUILD_SRC),)
+KBUILD_CPPFLAGS += $(patsubst %,-I%/include,$(machdirs) $(platdirs))
+KBUILD_CPPFLAGS += $(patsubst %,-I%,$(machdirs) $(platdirs))
+else
+KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%/include,$(machdirs) $(platdirs))
+KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%,$(machdirs) $(platdirs))
+endif
+
+
+else
 # The first directory contains additional information for the boot setup code
 ifneq ($(machine-y),)
 MACHINE  := arch/arm/mach-$(word 1,$(machine-y))/
@@ -267,6 +289,18 @@ KBUILD_CPPFLAGS += $(patsubst %,-I$(srctree)/%include,$(machdirs) $(platdirs))
 endif
 endif
 endif
+
+#mstar porting endif
+endif
+
+ifeq ($(CONFIG_MP_MSTAR_STR_BASE),y)
+ifneq ($(wildcard $(MACHINE)/mstar_strmisc_chip.h),)
+KBUILD_CPPFLAGS += -DMSTAR_STRMISC_CHIP
+endif
+endif
+
+KBUILD_CPPFLAGS += -Idrivers/mstar
+
 
 export	TEXT_OFFSET GZFLAGS MMUEXT
 
@@ -319,7 +353,11 @@ archprepare:
 # Convert bzImage to zImage
 bzImage: zImage
 
+ifeq ($(CONFIG_MSTAR_ARM),y)
+BOOT_TARGETS	= zImage Image xipImage bootpImage uImage uImage-dtb
+else
 BOOT_TARGETS	= zImage Image xipImage bootpImage uImage
+endif
 INSTALL_TARGETS	= zinstall uinstall install
 
 PHONY += bzImage $(BOOT_TARGETS) $(INSTALL_TARGETS)
@@ -334,7 +372,11 @@ $(BOOT_TARGETS): vmlinux
 $(INSTALL_TARGETS):
 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
 
+ifeq ($(CONFIG_MSTAR_ARM),y)
+%.dtb %.dtbo %.main_dtb: | scripts
+else
 %.dtb: | scripts
+endif
 	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
 
 PHONY += dtbs dtbs_install
@@ -350,6 +392,9 @@ vdso_install:
 ifeq ($(CONFIG_VDSO),y)
 	$(Q)$(MAKE) $(build)=arch/arm/vdso $@
 endif
+
+zImage-dtb: vmlinux scripts dtbs
+	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
 
 # We use MRPROPER_FILES and CLEAN_FILES now
 archclean:
