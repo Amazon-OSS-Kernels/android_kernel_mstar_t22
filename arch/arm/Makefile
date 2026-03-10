@@ -219,13 +219,33 @@ machine-$(CONFIG_ARCH_TEGRA)		+= tegra
 machine-$(CONFIG_ARCH_U300)		+= u300
 machine-$(CONFIG_ARCH_U8500)		+= ux500
 machine-$(CONFIG_ARCH_UNIPHIER)		+= uniphier
-machine-$(CONFIG_ARCH_VERSATILE)	+= versatile
-machine-$(CONFIG_ARCH_VEXPRESS)		+= vexpress
+#machine-$(CONFIG_ARCH_VERSATILE)	+= versatile
+#machine-$(CONFIG_ARCH_VEXPRESS)		+= vexpress
 machine-$(CONFIG_ARCH_VT8500)		+= vt8500
 machine-$(CONFIG_ARCH_W90X900)		+= w90x900
 machine-$(CONFIG_ARCH_ZX)		+= zx
 machine-$(CONFIG_ARCH_ZYNQ)		+= zynq
 machine-$(CONFIG_PLAT_SPEAR)		+= spear
+machine-$(CONFIG_MSTAR_K6)			+= ../../../../mstar2/hal/k6/cpu/arm
+machine-$(CONFIG_MSTAR_K6Lite)		+= ../../../../mstar2/hal/k6lite/cpu
+machine-$(CONFIG_MSTAR_KANO)		+= ../../../../mstar2/hal/kano/cpu/arm
+machine-$(CONFIG_MSTAR_CURRY)		+= ../../../../mstar2/hal/curry/cpu/arm
+machine-$(CONFIG_MSTAR_MAXIM)		+= ../../../../mstar2/hal/maxim/cpu/arm
+machine-$(CONFIG_MSTAR_K7U)			+= ../../../../mstar2/hal/k7u/cpu/arm
+machine-$(CONFIG_MSTAR_C2P)			+= ../../../../mstar2/hal/c2p/cpu/arm
+machine-$(CONFIG_MSTAR_M7322)		+= ../../../../mstar2/hal/m7322/cpu/arm
+machine-$(CONFIG_MSTAR_M5621)		+= ../../../../mstar2/hal/m5621/cpu/arm
+machine-$(CONFIG_MSTAR_M7621)		+= ../../../../mstar2/hal/m7621/cpu/arm
+machine-$(CONFIG_MSTAR_M7622)		+= ../../../../mstar2/hal/m7622/cpu/arm
+machine-$(CONFIG_MSTAR_M7221)           += ../../../../mstar2/hal/m7221/cpu/arm
+machine-$(CONFIG_MSTAR_M7632)           += ../../../../mstar2/hal/m7632/cpu/arm
+machine-$(CONFIG_MSTAR_M7332)           += ../../../../mstar2/hal/m7332/cpu/arm
+machine-$(CONFIG_MSTAR_MASERATI)           += ../../../../mstar2/hal/maserati/cpu/arm
+machine-$(CONFIG_MSTAR_M3822)		+= ../../../../mstar2/hal/m3822/cpu
+machine-$(CONFIG_MSTAR_MAINZ)		+= ../../../../mstar2/hal/mainz/cpu/arm
+
+KBUILD_CPPFLAGS += -Iarch/arm/include
+KBUILD_CPPFLAGS += -Idrivers/mstar2
 
 # Platform directory name.  This list is sorted alphanumerically
 # by CONFIG_* macro name.
