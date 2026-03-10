@@ -62,6 +62,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/i2c.h>
 
+#include <mstar/mpatch_macro.h>
+
 #define I2C_ADDR_OFFSET_TEN_BIT	0xa000
 #define I2C_ADDR_OFFSET_SLAVE	0x1000
 
@@ -1678,7 +1680,11 @@ static struct i2c_client *of_i2c_register_device(struct i2c_adapter *adap,
 	return result;
 }
 
+#ifdef CONFIG_MP_PLATFORM_ARCH_GENERAL
+void of_i2c_register_devices(struct i2c_adapter *adap)
+#else
 static void of_i2c_register_devices(struct i2c_adapter *adap)
+#endif
 {
 	struct device_node *bus, *node;
 	struct i2c_client *client;
@@ -3250,16 +3256,17 @@ static s32 i2c_smbus_xfer_emulated(struct i2c_adapter *adapter, u16 addr,
 				   the underlying bus driver */
 		break;
 	case I2C_SMBUS_I2C_BLOCK_DATA:
+		if (data->block[0] > I2C_SMBUS_BLOCK_MAX) {
+			dev_err(&adapter->dev, "Invalid block %s size %d\n",
+				read_write == I2C_SMBUS_READ ? "read" : "write",
+				data->block[0]);
+			return -EINVAL;
+		}
+
 		if (read_write == I2C_SMBUS_READ) {
 			msg[1].len = data->block[0];
 		} else {
 			msg[0].len = data->block[0] + 1;
-			if (msg[0].len > I2C_SMBUS_BLOCK_MAX + 1) {
-				dev_err(&adapter->dev,
-					"Invalid block write size %d\n",
-					data->block[0]);
-				return -EINVAL;
-			}
 			for (i = 1; i <= data->block[0]; i++)
 				msgbuf0[i] = data->block[i];
 		}

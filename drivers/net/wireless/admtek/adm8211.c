@@ -139,7 +139,6 @@ static int adm8211_read_eeprom(struct ieee80211_hw *dev)
 	switch (priv->rf_type) {
 	case ADM8211_TYPE_INTERSIL:
 	case ADM8211_TYPE_RFMD:
-	case ADM8211_TYPE_MARVEL:
 	case ADM8211_TYPE_AIROHA:
 	case ADM8211_TYPE_ADMTEK:
 		break;
@@ -158,7 +157,6 @@ static int adm8211_read_eeprom(struct ieee80211_hw *dev)
 	switch (priv->bbp_type) {
 	case ADM8211_TYPE_INTERSIL:
 	case ADM8211_TYPE_RFMD:
-	case ADM8211_TYPE_MARVEL:
 	case ADM8211_TYPE_AIROHA:
 	case ADM8211_TYPE_ADMTEK:
 		break;

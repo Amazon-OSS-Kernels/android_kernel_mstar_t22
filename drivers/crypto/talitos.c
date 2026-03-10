@@ -1527,6 +1527,11 @@ static int ablkcipher_setkey(struct crypto_ablkcipher *cipher,
 		return -EINVAL;
 	}
 
+	if (keylen > TALITOS_MAX_KEY_SIZE) {
+		crypto_ablkcipher_set_flags(cipher, CRYPTO_TFM_RES_BAD_KEY_LEN);
+		return -EINVAL;
+	}
+
 	memcpy(&ctx->key, key, keylen);
 	ctx->keylen = keylen;
 

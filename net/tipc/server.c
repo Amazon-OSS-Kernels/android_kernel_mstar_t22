@@ -194,8 +194,6 @@ static void tipc_unregister_callbacks(struct tipc_conn *con)
 
 static void tipc_close_conn(struct tipc_conn *con)
 {
-	struct tipc_server *s = con->server;
-
 	if (test_and_clear_bit(CF_CONNECTED, &con->flags)) {
 		tipc_unregister_callbacks(con);
 
