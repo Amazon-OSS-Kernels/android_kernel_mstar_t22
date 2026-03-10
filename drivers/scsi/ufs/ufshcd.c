@@ -41,9 +41,14 @@
 #include <linux/devfreq.h>
 #include <linux/nls.h>
 #include <linux/of.h>
+#include <linux/blkdev.h>
 #include "ufshcd.h"
 #include "ufs_quirks.h"
 #include "unipro.h"
+
+#ifdef CONFIG_MSTAR_UFS
+#include "ufs-mstar.h"
+#endif
 
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
@@ -887,6 +892,10 @@ static void ufshcd_clk_scaling_update_busy(struct ufs_hba *hba)
 static inline
 void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 {
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	ufs_mstar_print_request(&hba->lrb[task_tag]);
+	#endif
+
 	ufshcd_clk_scaling_start_busy(hba);
 	__set_bit(task_tag, &hba->outstanding_reqs);
 	ufshcd_writel(hba, 1 << task_tag, REG_UTP_TRANSFER_REQ_DOOR_BELL);
@@ -999,6 +1008,11 @@ ufshcd_dispatch_uic_cmd(struct ufs_hba *hba, struct uic_command *uic_cmd)
 	WARN_ON(hba->active_uic_cmd);
 
 	hba->active_uic_cmd = uic_cmd;
+
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	dev_err(hba->dev, "UICCMD:%x,%x,%x,%x\n",
+	uic_cmd->command, uic_cmd->argument1, uic_cmd->argument2, uic_cmd->argument3);
+	#endif
 
 	/* Write Args */
 	ufshcd_writel(hba, uic_cmd->argument1, REG_UIC_COMMAND_ARG_1);
@@ -1469,6 +1483,17 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 		clear_bit_unlock(tag, &hba->lrb_in_use);
 		goto out;
 	}
+
+	/* IO svc time latency histogram */
+	if (hba != NULL && cmd->request != NULL) {
+		if (hba->latency_hist_enabled &&
+		    (cmd->request->cmd_type == REQ_TYPE_FS)) {
+			cmd->request->lat_hist_io_start = ktime_get();
+			cmd->request->lat_hist_enabled = 1;
+		} else
+			cmd->request->lat_hist_enabled = 0;
+	}
+
 	WARN_ON(hba->clk_gating.state != CLKS_ON);
 
 	lrbp = &hba->lrb[tag];
@@ -1605,6 +1630,10 @@ static int ufshcd_wait_for_dev_cmd(struct ufs_hba *hba,
 		err = ufshcd_get_tr_ocs(lrbp);
 		if (!err)
 			err = ufshcd_dev_cmd_completion(hba, lrbp);
+		#ifdef CONFIG_MSTAR_UFS
+		else
+		    dev_err(hba->dev, "ufshcd_wait_for_dev_cmd - ufshcd_get_tr_ocs fails: %x\n", err);
+		#endif
 	}
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
@@ -2164,8 +2193,9 @@ static int ufshcd_read_desc_param(struct ufs_hba *hba,
 
 	/* Request for full descriptor */
 	ret = ufshcd_query_descriptor_retry(hba, UPIU_QUERY_OPCODE_READ_DESC,
-					desc_id, desc_index, 0,
-					desc_buf, &buff_len);
+					desc_id, desc_index, 0, desc_buf,
+					&buff_len);
+
 
 	if (ret) {
 		dev_err(hba->dev, "%s: Failed reading descriptor. desc_id %d, desc_index %d, param_offset %d, ret %d",
@@ -2850,7 +2880,38 @@ static int ufshcd_get_max_pwr_mode(struct ufs_hba *hba)
 	struct ufs_pa_layer_attr *pwr_info = &hba->max_pwr_info.info;
 
 	if (hba->max_pwr_info.is_valid)
+	#ifdef CONFIG_MSTAR_UFS
+	{
+		hba->max_pwr_info.info.gear_rx--;
+		hba->max_pwr_info.info.gear_tx--;
+
+		if(hba->max_pwr_info.info.gear_rx == 0)
+		{
+			if(hba->max_pwr_info.info.pwr_rx == SLOWAUTO_MODE || 
+				hba->max_pwr_info.info.pwr_rx == SLOW_MODE)
+				hba->max_pwr_info.info.gear_rx = 1;
+			else
+			{
+				hba->max_pwr_info.info.pwr_rx = SLOWAUTO_MODE;
+				hba->max_pwr_info.info.gear_rx = CAP_MSTAR_MAX_RX_PWM_GEAR;
+			}
+		}
+
+		if(hba->max_pwr_info.info.gear_tx == 0)
+		{
+			if(hba->max_pwr_info.info.pwr_tx == SLOWAUTO_MODE || 
+				hba->max_pwr_info.info.pwr_tx == SLOW_MODE)
+				hba->max_pwr_info.info.gear_tx = 1;
+			else
+			{
+				hba->max_pwr_info.info.pwr_tx = SLOWAUTO_MODE;
+				hba->max_pwr_info.info.gear_tx = CAP_MSTAR_MAX_TX_PWM_GEAR;
+			}
+		}
+	}
+	#else
 		return 0;
+	#endif
 
 	pwr_info->pwr_tx = FASTAUTO_MODE;
 	pwr_info->pwr_rx = FASTAUTO_MODE;
@@ -3677,9 +3738,13 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 	struct scsi_cmnd *cmd;
 	int result;
 	int index;
+	struct request *req;
 
 	for_each_set_bit(index, &completed_reqs, hba->nutrs) {
 		lrbp = &hba->lrb[index];
+		#ifdef CONFIG_MSTAR_UFS_DEBUG
+		ufs_mstar_print_response(lrbp);
+		#endif
 		cmd = lrbp->cmd;
 		if (cmd) {
 			result = ufshcd_transfer_rsp_status(hba, lrbp);
@@ -3688,6 +3753,22 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			/* Mark completed command as NULL in LRB */
 			lrbp->cmd = NULL;
 			clear_bit_unlock(index, &hba->lrb_in_use);
+			req = cmd->request;
+			if (req) {
+				/* Update IO svc time latency histogram */
+				if (req->lat_hist_enabled) {
+					ktime_t completion;
+					u_int64_t delta_us;
+
+					completion = ktime_get();
+					delta_us = ktime_us_delta(completion,
+						  req->lat_hist_io_start);
+					blk_update_latency_hist(
+						(rq_data_dir(req) == READ) ?
+						&hba->io_lat_read :
+						&hba->io_lat_write, delta_us);
+				}
+			}
 			/* Do not touch lrbp after scsi done */
 			cmd->scsi_done(cmd);
 			__ufshcd_release(hba);
@@ -4250,6 +4331,28 @@ static void ufshcd_update_uic_error(struct ufs_hba *hba)
 {
 	u32 reg;
 
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	unsigned long reg_l;
+	reg_l = ufshcd_readl(hba, REG_UIC_ERROR_CODE_PHY_ADAPTER_LAYER);
+
+	if (reg_l) {
+		dev_err(hba->dev,
+			"Host UIC Error Code PHY Adpter Layer: %lx\n", reg_l);
+
+		if (test_bit(0, &reg_l))
+			dev_err(hba->dev, "PHY error on Lane 0\n");
+		if (test_bit(1, &reg_l))
+			dev_err(hba->dev, "PHY error on Lane 1\n");
+		if (test_bit(2, &reg_l))
+			dev_err(hba->dev, "PHY error on Lane 2\n");
+		if (test_bit(3, &reg_l))
+			dev_err(hba->dev, "PHY error on Lane 3\n");
+		if (test_bit(4, &reg_l))
+			dev_err(hba->dev, "Generic PHY Adapter Error. This should be the LINERESET indication\n");
+
+	}
+	#endif
+
 	/* PA_INIT_ERROR is fatal and needs UIC reset */
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_DATA_LINK_LAYER);
 	if (reg & UIC_DATA_LINK_LAYER_ERROR_PA_INIT)
@@ -4262,19 +4365,70 @@ static void ufshcd_update_uic_error(struct ufs_hba *hba)
 		else if (reg & UIC_DATA_LINK_LAYER_ERROR_TCx_REPLAY_TIMEOUT)
 			hba->uic_error |= UFSHCD_UIC_DL_TCx_REPLAY_ERROR;
 	}
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	reg_l = reg;
+
+	if (reg_l) {
+		dev_err(hba->dev,
+			"Host UIC Error Code Data Link Layer: %08x\n", reg);
+
+		if (test_bit(0, &reg_l))
+			dev_err(hba->dev, "NAC_RECEIVED\n");
+		if (test_bit(1, &reg_l))
+			dev_err(hba->dev, "TCx_REPLAY_TIMER_EXPIRED\n");
+		if (test_bit(2, &reg_l))
+			dev_err(hba->dev, "AFCx_REQUEST_TIMER_EXPIRED\n");
+		if (test_bit(3, &reg_l))
+			dev_err(hba->dev, "FCx_PROTECTION_TIMER_EXPIRED\n");
+		if (test_bit(4, &reg_l))
+			dev_err(hba->dev, "CRC_ERROR\n");
+		if (test_bit(5, &reg_l))
+			dev_err(hba->dev, "RX_BUFFER_OVERFLOW\n");
+		if (test_bit(6, &reg_l))
+			dev_err(hba->dev, "MAX_FRAME_LENGTH_EXCEEDEDn");
+		if (test_bit(7, &reg_l))
+			dev_err(hba->dev, "WRONG_SEQUENCE_NUMBER\n");
+		if (test_bit(8, &reg_l))
+			dev_err(hba->dev, "AFC_FRAME_SYNTAX_ERROR\n");
+		if (test_bit(9, &reg_l))
+			dev_err(hba->dev, "NAC_FRAME_SYNTAX_ERROR\n");
+		if (test_bit(10, &reg_l))
+			dev_err(hba->dev, "EOF_SYNTAX_ERROR\n");
+		if (test_bit(11, &reg_l))
+			dev_err(hba->dev, "FRAME_SYNTAX_ERROR\n");
+		if (test_bit(12, &reg_l))
+			dev_err(hba->dev, "BAD_CTRL_SYMBOL_TYPE\n");
+		if (test_bit(13, &reg_l))
+			dev_err(hba->dev, "PA_INIT_ERROR (FATAL ERROR)\n");
+		if (test_bit(14, &reg_l))
+			dev_err(hba->dev, "PA_ERROR_IND_RECEIVED\n");
+	}
+	#endif
 
 	/* UIC NL/TL/DME errors needs software retry */
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_NETWORK_LAYER);
 	if (reg)
 		hba->uic_error |= UFSHCD_UIC_NL_ERROR;
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	if (reg)
+		dev_err(hba->dev, "Host UIC Error Code Network Layer: %08x\n", reg);
+	#endif
 
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_TRANSPORT_LAYER);
 	if (reg)
 		hba->uic_error |= UFSHCD_UIC_TL_ERROR;
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	if (reg)
+		dev_err(hba->dev, "Host UIC Error Code Transport Layer: %08x\n", reg);
+	#endif
 
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_DME);
 	if (reg)
 		hba->uic_error |= UFSHCD_UIC_DME_ERROR;
+	#ifdef CONFIG_MSTAR_UFS_DEBUG
+	if (reg)
+		dev_err(hba->dev, "Host UIC Error Code: %08x\n", reg);
+	#endif
 
 	dev_dbg(hba->dev, "%s: UIC error flags = 0x%08x\n",
 			__func__, hba->uic_error);
@@ -4993,6 +5147,9 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	 */
 	dev_desc->wmanufacturerid = desc_buf[DEVICE_DESC_PARAM_MANF_ID] << 8 |
 				     desc_buf[DEVICE_DESC_PARAM_MANF_ID + 1];
+	#ifdef CONFIG_MSTAR_UFS
+	dev_err(hba->dev, "wManufacturerID = %04X\n", card_data->wmanufacturerid);	
+	#endif
 
 	model_index = desc_buf[DEVICE_DESC_PARAM_PRDCT_NAME];
 
@@ -6467,6 +6624,61 @@ out:
 }
 EXPORT_SYMBOL(ufshcd_shutdown);
 
+/*
+ * Values permitted 0, 1, 2.
+ * 0 -> Disable IO latency histograms (default)
+ * 1 -> Enable IO latency histograms
+ * 2 -> Zero out IO latency histograms
+ */
+static ssize_t
+latency_hist_store(struct device *dev, struct device_attribute *attr,
+		   const char *buf, size_t count)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	long value;
+
+	if (kstrtol(buf, 0, &value))
+		return -EINVAL;
+	if (value == BLK_IO_LAT_HIST_ZERO) {
+		memset(&hba->io_lat_read, 0, sizeof(hba->io_lat_read));
+		memset(&hba->io_lat_write, 0, sizeof(hba->io_lat_write));
+	} else if (value == BLK_IO_LAT_HIST_ENABLE ||
+		 value == BLK_IO_LAT_HIST_DISABLE)
+		hba->latency_hist_enabled = value;
+	return count;
+}
+
+ssize_t
+latency_hist_show(struct device *dev, struct device_attribute *attr,
+		  char *buf)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	size_t written_bytes;
+
+	written_bytes = blk_latency_hist_show("Read", &hba->io_lat_read,
+			buf, PAGE_SIZE);
+	written_bytes += blk_latency_hist_show("Write", &hba->io_lat_write,
+			buf + written_bytes, PAGE_SIZE - written_bytes);
+
+	return written_bytes;
+}
+
+static DEVICE_ATTR(latency_hist, S_IRUGO | S_IWUSR,
+		   latency_hist_show, latency_hist_store);
+
+static void
+ufshcd_init_latency_hist(struct ufs_hba *hba)
+{
+	if (device_create_file(hba->dev, &dev_attr_latency_hist))
+		dev_err(hba->dev, "Failed to create latency_hist sysfs entry\n");
+}
+
+static void
+ufshcd_exit_latency_hist(struct ufs_hba *hba)
+{
+	device_create_file(hba->dev, &dev_attr_latency_hist);
+}
+
 /**
  * ufshcd_remove - de-allocate SCSI host and host memory space
  *		data structure memory
@@ -6482,6 +6694,7 @@ void ufshcd_remove(struct ufs_hba *hba)
 	scsi_host_put(hba->host);
 
 	ufshcd_exit_clk_gating(hba);
+	ufshcd_exit_latency_hist(hba);
 	if (ufshcd_is_clkscaling_enabled(hba))
 		devfreq_remove_device(hba->devfreq);
 	ufshcd_hba_exit(hba);
@@ -6798,6 +7011,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	/* Hold auto suspend until async scan completes */
 	pm_runtime_get_sync(dev);
 
+	ufshcd_init_latency_hist(hba);
+
 	/*
 	 * We are assuming that device wasn't put in sleep/power-down
 	 * state exclusively during the boot stage before kernel.
@@ -6814,6 +7029,7 @@ out_remove_scsi_host:
 	scsi_remove_host(hba->host);
 exit_gating:
 	ufshcd_exit_clk_gating(hba);
+	ufshcd_exit_latency_hist(hba);
 out_disable:
 	hba->is_irq_enabled = false;
 	scsi_host_put(host);
