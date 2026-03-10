@@ -41,6 +41,11 @@
 #include <asm/sysreg.h>
 #include <asm/thread_info.h>
 #include <asm/virt.h>
+#include <mstar/mpatch_macro.h>
+
+#ifdef CONFIG_MP_MSTAR_STR_BASE
+#include <mach/pm.h>
+#endif
 
 #define __PHYS_OFFSET	(KERNEL_START - TEXT_OFFSET)
 
@@ -97,6 +102,17 @@ _head:
 	.long	pe_header - _head		// Offset to the PE header.
 #else
 	.word	0				// reserved
+#endif
+
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_PORTING)
+	__ramdisk_start:
+	.quad 0					// change to 64 bit (use long will be 4-byte only
+	__ramdisk_len:
+	.quad 0					// change to 64 bit (use long will be 4-byte only
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB)
+	__cmdline:
+	.quad 0					// change to 64 bit (use long will be 4-byte only
+#endif
 #endif
 
 #ifdef CONFIG_EFI
@@ -219,6 +235,35 @@ efi_header_end:
 	 *  x19/x20    __primary_switch()         callee preserved temp registers
 	 */
 ENTRY(stext)
+#ifdef CONFIG_MP_MSTAR_STR_BASE
+  ldr x5, =AC_ON_CHECK_REG
+  ldr w7,[x5]
+  bic w7,w7,#0x00FF
+  bic w7,w7,#0x0F00
+  ldr w6,=0xF000
+  cmp w7,w6
+  beq normal_boot
+  STSV_ADR X6, sleep_saved_magic
+  ldr x5, =MSTAR_SLEEP_MAGIC
+  ldr x7, [x6]
+  cmp x7, x5
+  b.ne normal_boot
+  adr_l x5, sleep_wakeup_first
+  br  x5
+normal_boot:
+#endif
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_PORTING)
+	adr_l	x0, __ramdisk_start
+	adr_l	x1, __ramdisk_len
+	str     w3, [x0]
+	str     w4, [x1]
+	#save the bootargs pointer which is passed by MBoot in w2(r2 in 32 bit)
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB)
+	adr_l	x0, __cmdline
+	str		w2, [x0]
+#endif
+	mov	x0, 0x23000000			// tempary patch assume FDT is at 0x23000000
+#endif
 	bl	preserve_boot_args
 	bl	el2_setup			// Drop to EL1, w0=cpu_boot_mode
 	adrp	x23, __PHYS_OFFSET
@@ -242,7 +287,7 @@ preserve_boot_args:
 	mov	x21, x0				// x21=FDT
 
 	adr_l	x0, boot_args			// record the contents of
-	stp	x21, x1, [x0]			// x0 .. x3 at kernel entry
+	stp	x21, x1, [x0]			// x0 .. x3 at kernel entry(push x21, x1 to [x0])
 	stp	x2, x3, [x0, #16]
 
 	dmb	sy				// needed before dc ivac with
@@ -297,18 +342,26 @@ ENDPROC(preserve_boot_args)
  * Preserves:	tbl, flags
  * Corrupts:	phys, start, end, pstate
  */
-	.macro	create_block_map, tbl, flags, phys, start, end
+	.macro	create_block_map, tbl, flags, phys, start, end, idmap=0
 	lsr	\phys, \phys, #SWAPPER_BLOCK_SHIFT
+        .if     \idmap
+	and	\start, \phys, #PTRS_PER_PTE - 1	// table index
+        .else
 	lsr	\start, \start, #SWAPPER_BLOCK_SHIFT
 	and	\start, \start, #PTRS_PER_PTE - 1	// table index
+        .endif
 	orr	\phys, \flags, \phys, lsl #SWAPPER_BLOCK_SHIFT	// table entry
+        .ifnc   \start,\end
 	lsr	\end, \end, #SWAPPER_BLOCK_SHIFT
 	and	\end, \end, #PTRS_PER_PTE - 1		// table end index
+        .endif
 9999:	str	\phys, [\tbl, \start, lsl #3]		// store the entry
+        .ifnc   \start,\end
 	add	\start, \start, #1			// next entry
 	add	\phys, \phys, #SWAPPER_BLOCK_SIZE		// next block
 	cmp	\start, \end
 	b.ls	9999b
+        .endif
 	.endm
 
 /*
@@ -326,20 +379,34 @@ __create_page_tables:
 	 * dirty cache lines being evicted.
 	 */
 	adrp	x0, idmap_pg_dir
-	adrp	x1, swapper_pg_dir + SWAPPER_DIR_SIZE
+	adrp	x1, swapper_pg_dir + SWAPPER_DIR_SIZE + RESERVED_TTBR0_SIZE
 	bl	__inval_cache_range
 
 	/*
 	 * Clear the idmap and swapper page tables.
 	 */
 	adrp	x0, idmap_pg_dir
-	adrp	x6, swapper_pg_dir + SWAPPER_DIR_SIZE
+	adrp	x6, swapper_pg_dir + SWAPPER_DIR_SIZE + RESERVED_TTBR0_SIZE
 1:	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	stp	xzr, xzr, [x0], #16
 	cmp	x0, x6
 	b.lo	1b
+
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_PORTING)
+	/*
+	 * Map the Periphel register mmap.(identical mapping)
+	 * VA=0x000000_1f200000 PA=0x000000_1f200000
+	 * This mapping will be clean in paging_init()
+	 */
+	ldr     x7, =DEV_MMUFLAGS
+	//add   x0, x25, #PAGE_SIZE             // section table address
+	ldr     x3, =0x0000001f200000
+	ldr     x6, =0x0000001f210000
+	create_pgd_entry x0, x3, x5, x6
+	create_block_map x0, x7, x3, x5, x6, idmap=1
+#endif
 
 	mov	x7, SWAPPER_MM_MMUFLAGS
 
@@ -412,7 +479,7 @@ __create_page_tables:
 	 * tables again to remove any speculatively loaded cache lines.
 	 */
 	adrp	x0, idmap_pg_dir
-	adrp	x1, swapper_pg_dir + SWAPPER_DIR_SIZE
+	adrp	x1, swapper_pg_dir + SWAPPER_DIR_SIZE + RESERVED_TTBR0_SIZE
 	dmb	sy
 	bl	__inval_cache_range
 
@@ -428,7 +495,8 @@ ENDPROC(__create_page_tables)
 __primary_switched:
 	adrp	x4, init_thread_union
 	add	sp, x4, #THREAD_SIZE
-	msr	sp_el0, x4			// Save thread_info
+	adr_l	x5, init_task
+	msr	sp_el0, x5			// Save thread_info
 
 	adr_l	x8, vectors			// load VBAR_EL1 with virtual
 	msr	vbar_el1, x8			// vector table address
@@ -451,6 +519,16 @@ __primary_switched:
 	bl	__pi_memset
 	dsb	ishst				// Make zero page visible to PTW
 
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_PORTING)
+	ldr_l   x0, __ramdisk_start
+	ldr_l   x1, __ramdisk_len
+#if defined(CONFIG_MP_PLATFORM_ARM_64bit_BOOTARGS_NODTB)
+	# pass cmdline to c code of kernel
+	ldr_l   x2, __cmdline
+#endif
+	bl      mstar_get_ramdisk_info
+#endif
+
 #ifdef CONFIG_KASAN
 	bl	kasan_early_init
 #endif
@@ -466,6 +544,7 @@ __primary_switched:
 	ret					// to __primary_switch()
 0:
 #endif
+
 	b	start_kernel
 ENDPROC(__primary_switched)
 
@@ -700,10 +779,10 @@ __secondary_switched:
 	isb
 
 	adr_l	x0, secondary_data
-	ldr	x0, [x0, #CPU_BOOT_STACK]	// get secondary_data.stack
-	mov	sp, x0
-	and	x0, x0, #~(THREAD_SIZE - 1)
-	msr	sp_el0, x0			// save thread_info
+	ldr	x1, [x0, #CPU_BOOT_STACK]	// get secondary_data.stack
+	mov	sp, x1
+	ldr	x2, [x0, #CPU_BOOT_TASK]
+	msr	sp_el0, x2
 	mov	x29, #0
 	b	secondary_start_kernel
 ENDPROC(__secondary_switched)
