@@ -46,7 +46,7 @@
 
 /* These are for everybody (although not all archs will actually
    discard it in modules) */
-#define __init		__section(.init.text) __cold notrace __latent_entropy __noinitretpoline
+#define __init		__section(.init.text) __cold notrace __latent_entropy __noinitretpoline __nocfi
 #define __initdata	__section(.init.data)
 #define __initconst	__section(.init.rodata)
 #define __exitdata	__section(.exit.data)
@@ -80,6 +80,14 @@
 #endif
 
 #define __exit          __section(.exit.text) __exitused __cold notrace
+
+/* Used for HOTPLUG_CPU */
+#define __cpuinit        __section(.cpuinit.text) __cold notrace
+#define __cpuinitdata    __section(.cpuinit.data)
+#define __cpuinitconst   __constsection(.cpuinit.rodata)
+#define __cpuexit        __section(.cpuexit.text) __exitused __cold notrace
+#define __cpuexitdata    __section(.cpuexit.data)
+#define __cpuexitconst   __constsection(.cpuexit.rodata)
 
 /* Used for MEMORY_HOTPLUG */
 #define __meminit        __section(.meminit.text) __cold notrace \
@@ -150,6 +158,15 @@ extern bool initcall_debug;
 
 #ifndef __ASSEMBLY__
 
+#ifdef CONFIG_LTO_CLANG
+  /* prepend the variable name with __COUNTER__ to ensure correct ordering */
+  #define ___initcall_name2(c, fn, id) 	__initcall_##c##_##fn##id
+  #define ___initcall_name1(c, fn, id)	___initcall_name2(c, fn, id)
+  #define __initcall_name(fn, id) 	___initcall_name1(__COUNTER__, fn, id)
+#else
+  #define __initcall_name(fn, id) 	__initcall_##fn##id
+#endif
+
 /*
  * initcalls are now grouped by functionality into separate
  * subsections. Ordering inside the subsections is determined
@@ -167,7 +184,7 @@ extern bool initcall_debug;
  */
 
 #define __define_initcall(fn, id) \
-	static initcall_t __initcall_##fn##id __used \
+	static initcall_t __initcall_name(fn, id) __used \
 	__attribute__((__section__(".initcall" #id ".init"))) = fn;
 
 /*

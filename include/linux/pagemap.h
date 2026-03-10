@@ -225,7 +225,7 @@ static inline gfp_t readahead_gfp_mask(struct address_space *x)
 				  __GFP_COLD | __GFP_NORETRY | __GFP_NOWARN;
 }
 
-typedef int filler_t(void *, struct page *);
+typedef int filler_t(struct file *, struct page *);
 
 pgoff_t page_cache_next_hole(struct address_space *mapping,
 			     pgoff_t index, unsigned long max_scan);
@@ -369,7 +369,7 @@ extern int read_cache_pages(struct address_space *mapping,
 static inline struct page *read_mapping_page(struct address_space *mapping,
 				pgoff_t index, void *data)
 {
-	filler_t *filler = (filler_t *)mapping->a_ops->readpage;
+	filler_t *filler = mapping->a_ops->readpage;
 	return read_cache_page(mapping, index, filler, data);
 }
 
@@ -516,6 +516,15 @@ static inline void wait_on_page_locked(struct page *page)
 	if (PageLocked(page))
 		wait_on_page_bit(compound_head(page), PG_locked);
 }
+
+#ifdef CONFIG_MP_CMA_PATCH_KSM_MIGRATION_FAILURE
+extern void wait_on_page_bit_timeout(struct page *page, int bit_nr);
+static inline void wait_on_page_locked_timeout(struct page *page)
+{
+	if (PageLocked(page))
+		wait_on_page_bit_timeout(page, PG_locked);
+}
+#endif
 
 /* 
  * Wait for a page to complete writeback
