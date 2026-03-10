@@ -2689,9 +2689,7 @@ int tioclinux(struct tty_struct *tty, unsigned long arg)
 	switch (type)
 	{
 		case TIOCL_SETSEL:
-			console_lock();
 			ret = set_selection((struct tiocl_selection __user *)(p+1), tty);
-			console_unlock();
 			break;
 		case TIOCL_PASTESEL:
 			ret = paste_selection(tty);
@@ -3938,12 +3936,16 @@ void unblank_screen(void)
  */
 static void blank_screen_t(unsigned long dummy)
 {
+    // prevent system from turning off the backlight after idling blankinterval time.
+    // remove the code as we will not be using this feature.
+#if 0
 	if (unlikely(!keventd_up())) {
 		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
 		return;
 	}
 	blank_timer_expired = 1;
 	schedule_work(&console_work);
+#endif
 }
 
 void poke_blanked_console(void)
