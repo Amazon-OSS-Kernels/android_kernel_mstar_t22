@@ -960,5 +960,42 @@ endif
 dtstree		:= $(srctree)/$(src)
 dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(wildcard $(dtstree)/*.dts))
 
-always		:= $(dtb-y)
-clean-files	:= *.dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_an).dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_ramdisk).dtb
+
+ifeq ($(CONFIG_MSTAR_CHIP_NAME), "m7322")
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_148B).dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_303A).dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_an_avb).dtb
+endif
+
+# TODO: Add the M7322 dts build rule
+# ifeq ($(CONFIG_MSTAR_CHIP_NAME), "m7332")
+# endif
+
+ifeq ($(CONFIG_MSTAR_CHIP_NAME), "m5621")
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_an_avb).dtb
+endif
+
+ifeq ($(CONFIG_MSTAR_CHIP_NAME), "m5621")
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_an).main_dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_HISENSE).main_dtb
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_overlay_1).dtbo
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_overlay_avb).dtbo
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_overlay_dto).dtbo
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_overlay_28).dtbo
+dtb-$(CONFIG_OF) += $(subst ",,$(CONFIG_MSTAR_CHIP_NAME)_overlay_avb28).dtbo
+endif
+
+DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM_APPENDED_DTB_IMAGE_NAMES))
+ifneq ($(DTB_NAMES),)
+DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
+else
+DTB_LIST := $(dtb-y)
+endif
+
+targets += dtbs dtbs_install
+targets += $(DTB_LIST)
+
+always		:= $(DTB_LIST)
+clean-files	:= *.dtb *.main_dtb *.dtbo
