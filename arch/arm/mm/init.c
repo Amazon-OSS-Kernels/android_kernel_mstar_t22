@@ -36,8 +36,16 @@
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
+#include <chip_setup.h>
 
 #include "mm.h"
+
+#ifdef CONFIG_MSTAR_CHIP
+#ifdef CONFIG_PSTORE_RAM
+#include <linux/pstore_ram.h>
+extern struct ramoops_platform_data ramoops_data;
+#endif
+#endif
 
 #ifdef CONFIG_CPU_CP15_MMU
 unsigned long __init __clear_cr(unsigned long mask)
@@ -47,8 +55,30 @@ unsigned long __init __clear_cr(unsigned long mask)
 }
 #endif
 
+#define NR_BANKS 8
+struct membank {
+        unsigned long start;
+        unsigned long size;
+        unsigned int highmem;
+};
+
+struct meminfo {
+        int nr_banks;
+        struct membank bank[NR_BANKS];
+};
+
+struct meminfo meminfo;
+
 static phys_addr_t phys_initrd_start __initdata = 0;
 static unsigned long phys_initrd_size __initdata = 0;
+
+#ifdef CONFIG_MP_PLATFORM_ARM_32bit_PORTING
+extern unsigned long lx_mem_addr;
+extern unsigned long lx_mem_size;
+#endif
+#ifdef CONFIG_MP_MMA_UMA_WITH_NARROW
+extern u64 mma_dma_zone_size;
+#endif
 
 static int __init early_initrd(char *p)
 {
@@ -125,11 +155,19 @@ static void __init arm_adjust_dma_zone(unsigned long *size, unsigned long *hole,
 void __init setup_dma_zone(const struct machine_desc *mdesc)
 {
 #ifdef CONFIG_ZONE_DMA
+#ifndef CONFIG_MP_MMA_UMA_WITH_NARROW
 	if (mdesc->dma_zone_size) {
 		arm_dma_zone_size = mdesc->dma_zone_size;
 		arm_dma_limit = PHYS_OFFSET + arm_dma_zone_size - 1;
 	} else
 		arm_dma_limit = 0xffffffff;
+#else
+	if (mma_dma_zone_size > 0) {
+		arm_dma_zone_size = mma_dma_zone_size;
+		arm_dma_limit = PHYS_OFFSET + arm_dma_zone_size - 1;
+	} else
+		arm_dma_limit = 0xffffffff;
+#endif
 	arm_dma_pfn_limit = arm_dma_limit >> PAGE_SHIFT;
 #endif
 }
@@ -227,6 +265,15 @@ phys_addr_t __init arm_memblock_steal(phys_addr_t size, phys_addr_t align)
 	return phys;
 }
 
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+extern phys_addr_t arm_lowmem_limit;
+void reserve_page_trace_mem(phys_addr_t beg,phys_addr_t end);
+#endif
+
+#ifdef CONFIG_MSTAR_IPAPOOL
+extern void ipa_contiguous_reserve(void);
+#endif
+
 void __init arm_memblock_init(const struct machine_desc *mdesc)
 {
 	/* Register the kernel text, kernel data and initrd with memblock. */
@@ -269,12 +316,36 @@ void __init arm_memblock_init(const struct machine_desc *mdesc)
 	if (mdesc->reserve)
 		mdesc->reserve();
 
+#ifdef CONFIG_MP_DEBUG_TOOL_MEMORY_USAGE_TRACE
+	reserve_page_trace_mem(PHYS_OFFSET, arm_lowmem_limit);
+#endif
+
 	early_init_fdt_reserve_self();
 	early_init_fdt_scan_reserved_mem();
 
+#ifndef CONFIG_MP_CMA_PATCH_CMA_DEFAULT_BUFFER_LIMITTED_TO_LX0
 	/* reserve memory for DMA contiguous allocations */
+	// this is original case, we only find default cma_buffer @ whole lowmem(usually @ the backend of lowmem)
+	printk("\033[35mFunction = %s, Line = %d, find cma_default buffer at whole lowmem\033[m\n", __PRETTY_FUNCTION__, __LINE__);
 	dma_contiguous_reserve(arm_dma_limit);
+#else
+	// this is to limit cma default buffer at LX_MEM(LX0)
+	printk("\033[35mFunction = %s, Line = %d, find cma_default buffer at only LX0\033[m\n", __PRETTY_FUNCTION__, __LINE__);
+	dma_contiguous_reserve(min((lx_mem_addr+lx_mem_size), (unsigned long)arm_dma_limit));
+#endif
 
+#ifdef CONFIG_MSTAR_CHIP
+	/* Reserve 16K for put magic Key,new magic mechanism*/
+	memblock_reserve(PHYS_OFFSET, 16 * 1024);
+	memblock_reserve(__pa(SECOND_MAGIC_NUMBER_ADRESS), 4 * 1024);
+
+#ifdef CONFIG_PSTORE_RAM
+	/* Reserve this to do ramoops (the region is defined @ dts).
+	 * The ramoops_data is defined @ fs/pstore/ram.c, you can change the setting.
+	 */
+	memblock_reserve(ramoops_data.mem_address, ramoops_data.mem_size);
+#endif
+#endif
 	arm_memblock_steal_permitted = false;
 	memblock_dump_all();
 }
@@ -594,6 +665,7 @@ static struct section_perm nx_perms[] = {
 		.mask	= ~PMD_SECT_XN,
 		.prot	= PMD_SECT_XN,
 	},
+#if !defined(CONFIG_MP_MSTAR_STR_BASE)
 	/* Make init RW (set NX). */
 	{
 		.name	= "init NX",
@@ -602,6 +674,7 @@ static struct section_perm nx_perms[] = {
 		.mask	= ~PMD_SECT_XN,
 		.prot	= PMD_SECT_XN,
 	},
+#endif
 	/* Make rodata NX (set RO in ro_perms below). */
 	{
 		.name	= "rodata NX",
@@ -627,6 +700,22 @@ static struct section_perm ro_perms[] = {
 		.clear  = PMD_SECT_AP_WRITE,
 #endif
 	},
+#ifdef CONFIG_MP_MSTAR_STR_BASE
+	/* Make init RX (set RO). */
+	{
+		.name	= "init NX",
+		.start	= (unsigned long)__init_begin,
+		.end	= (unsigned long)_sdata,
+#ifdef CONFIG_ARM_LPAE
+		.mask   = ~(L_PMD_SECT_RDONLY | PMD_SECT_AP2),
+		.prot   = L_PMD_SECT_RDONLY | PMD_SECT_AP2,
+#else
+		.mask   = ~(PMD_SECT_APX | PMD_SECT_AP_WRITE | PMD_SECT_AP_READ),
+		.prot   = PMD_SECT_APX | PMD_SECT_AP_WRITE,
+		.clear  = PMD_SECT_AP_WRITE,
+#endif
+	},
+#endif
 };
 
 /*
@@ -756,11 +845,13 @@ void free_tcmmem(void)
 void free_initmem(void)
 {
 	fix_kernmem_perms();
+#if !defined(CONFIG_MP_MSTAR_STR_BASE)
 	free_tcmmem();
 
 	poison_init_mem(__init_begin, __init_end - __init_begin);
 	if (!machine_is_integrator() && !machine_is_cintegrator())
 		free_initmem_default(-1);
+#endif
 }
 
 #ifdef CONFIG_BLK_DEV_INITRD
