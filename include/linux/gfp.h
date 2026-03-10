@@ -516,7 +516,7 @@ extern void __free_page_frag(void *addr);
 void page_alloc_init(void);
 void drain_zone_pages(struct zone *zone, struct per_cpu_pages *pcp);
 void drain_all_pages(struct zone *zone);
-void drain_local_pages(struct zone *zone);
+void drain_local_pages(void *zone);
 
 void page_alloc_init_late(void);
 
@@ -554,6 +554,10 @@ extern void free_contig_range(unsigned long pfn, unsigned nr_pages);
 #ifdef CONFIG_CMA
 /* CMA stuff */
 extern void init_cma_reserved_pageblock(struct page *page);
+
+#ifdef CONFIG_MP_CMA_PATCH_CMA_AGGRESSIVE_ALLOC
+extern void adjust_managed_cma_page_count(struct zone *zone, long count);
+#endif  //CONFIG_MP_CMA_PATCH_CMA_AGGRESSIVE_ALLOC
 #endif
 
 #endif /* __LINUX_GFP_H */
